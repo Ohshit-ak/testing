@@ -15,7 +15,9 @@ from bank import Bank
 from dice import Dice
 from cards import CardDeck, CHANCE_CARDS, COMMUNITY_CHEST_CARDS
 import ui
-class Game:
+
+
+class Game:  # pylint: disable=too-many-instance-attributes
     """Manages the full state and flow of a MoneyPoly game session."""
 
     def __init__(self, player_names):
@@ -69,7 +71,7 @@ class Game:
 
         self.advance_turn()
 
-    def _move_and_resolve(self, player, steps):
+    def _move_and_resolve(self, player, steps):  # pylint: disable=too-many-branches
         """Move `player` by `steps` and trigger whatever tile they land on."""
         player.move(steps)
         position = player.position
@@ -290,7 +292,7 @@ class Game:
             print(f"  {player.name} rolled: {self.dice.describe()}")
             self._move_and_resolve(player, roll)
 
-    def _apply_card(self, player, card):
+    def _apply_card(self, player, card):  # pylint: disable=too-many-branches
         """Apply the effect of a drawn Chance or Community Chest card."""
         if card is None:
             return
