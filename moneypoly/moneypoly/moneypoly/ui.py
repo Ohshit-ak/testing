@@ -1,3 +1,4 @@
+"""Defines functions for printing the game state to the console in a user-friendly format."""
 def print_banner(title):
     """Print a decorated section header."""
     width = 52
@@ -66,7 +67,7 @@ def safe_int_input(prompt, default=0):
     """
     try:
         return int(input(prompt))
-    except:
+    except ValueError:
         return default
 
 
