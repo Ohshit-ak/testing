@@ -2,7 +2,7 @@
 This module defines the Bank class, which manages the game's
 financial transactions and reserves.
 """
-from config import BANK_STARTING_FUNDS
+from .config import BANK_STARTING_FUNDS
 
 
 class Bank:

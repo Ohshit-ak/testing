@@ -1,8 +1,8 @@
 """
 Docstring for moneypoly.moneypoly.moneypoly.board
 """
-from property import Property, PropertyGroup
-from config import (
+from .property import Property, PropertyGroup
+from .config import (
     JAIL_POSITION,
     GO_TO_JAIL_POSITION,
     FREE_PARKING_POSITION,

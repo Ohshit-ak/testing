@@ -1,5 +1,5 @@
 """Defines the Player class, which represents a single player in a MoneyPoly game."""
-from config import STARTING_BALANCE, BOARD_SIZE, GO_SALARY, JAIL_POSITION
+from .config import STARTING_BALANCE, BOARD_SIZE, GO_SALARY, JAIL_POSITION
 
 
 class Player:  # pylint: disable=too-many-instance-attributes
