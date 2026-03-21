@@ -43,7 +43,19 @@
     - Added: module docstring; direct config import; pylint disable for `too-many-arguments` on class.
 -  `game.py`
     - Added: module docstring; direct imports from local modules; pylint disables (`too-many-instance-attributes` on class, `too-many-branches` on `_move_and_resolve` and `_apply_card`).
-    
+### ITERATION 3: Final Linting and Documentation
+
+## File-by-file adds/removals vs original
+ - `bank.py`
+     - changed config to .config (direct import).
+ - `board.py`
+     - changed config to .config (direct import).
+	 - changed property imports to direct imports from local modules.
+ - `game.py`
+	 - changed imports to direct imports from local modules.
+ - `player.py`
+	 - changed config import to direct import from local module.
+	 
 
 
 ## Notes
