@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:transparent;font-family:var(--font-sans,"system-ui")}
+#top{padding:10px 14px;border-bottom:1px solid var(--color-border-tertiary);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fb{font-size:11px;padding:3px 10px;border-radius:12px;border:1.5px solid transparent;cursor:pointer;font-weight:500;transition:all .15s;background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.fb.on{color:#fff}
+.fb[data-m="game"].on{background:#534AB7;border-color:#534AB7}
+.fb[data-m="player"].on{background:#0F6E56;border-color:#0F6E56}
+.fb[data-m="board"].on{background:#3B6D11;border-color:#3B6D11}
+.fb[data-m="bank"].on{background:#854F0B;border-color:#854F0B}
+.fb[data-m="cards"].on{background:#993C1D;border-color:#993C1D}
+.fb[data-m="property"].on{background:#993556;border-color:#993556}
+.fb[data-m="ui"].on{background:#5F5E5A;border-color:#5F5E5A}
+.fb[data-m="bug"].on{background:#A32D2D;border-color:#A32D2D}
+#rst{margin-left:auto;font-size:11px;padding:3px 10px;border-radius:12px;border:1px solid var(--color-border-secondary);cursor:pointer;background:transparent;color:var(--color-text-secondary)}
+#leg{padding:7px 14px;display:flex;flex-wrap:wrap;gap:10px;font-size:10.5px;color:var(--color-text-secondary);border-bottom:1px solid var(--color-border-tertiary)}
+.li{display:flex;align-items:center;gap:4px}
+.ld{width:28px;height:3px}
+#wrap{overflow:auto;width:100%;position:relative}
+canvas{display:block}
+#tt{position:absolute;display:none;pointer-events:none;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;padding:9px 12px;font-size:12px;max-width:260px;line-height:1.6;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+#tt b{display:block;font-weight:500;font-size:12.5px;margin-bottom:2px}
+#tt .mod{font-size:10.5px;color:var(--color-text-tertiary)}
+#tt .bug{font-size:11px;color:#A32D2D;margin-top:5px;font-weight:500}
+#tt .dead{font-size:11px;color:#888;margin-top:3px}
+</style>
+<div id="top">
+  <span style="font-size:11px;color:var(--color-text-tertiary)">Show modules:</span>
+  <button class="fb on" data-m="game">game.py</button>
+  <button class="fb on" data-m="player">player.py</button>
+  <button class="fb on" data-m="board">board.py</button>
+  <button class="fb on" data-m="bank">bank.py</button>
+  <button class="fb on" data-m="cards">cards / dice</button>
+  <button class="fb on" data-m="property">property.py</button>
+  <button class="fb on" data-m="ui">ui.py</button>
+  <button class="fb on" data-m="bug">bugs</button>
+  <button id="rst">reset</button>
+</div>
+<div id="leg">
+  <span class="li"><span class="ld" style="background:#534AB7;border-radius:2px"></span>game</span>
+  <span class="li"><span class="ld" style="background:#0F6E56;border-radius:2px"></span>player</span>
+  <span class="li"><span class="ld" style="background:#3B6D11;border-radius:2px"></span>board</span>
+  <span class="li"><span class="ld" style="background:#854F0B;border-radius:2px"></span>bank</span>
+  <span class="li"><span class="ld" style="background:#993C1D;border-radius:2px"></span>cards/dice</span>
+  <span class="li"><span class="ld" style="background:#993556;border-radius:2px"></span>property</span>
+  <span class="li"><span class="ld" style="background:#5F5E5A;border-radius:2px"></span>ui</span>
+  <span class="li"><span class="ld" style="background:#E24B4A;border-radius:2px"></span>bug</span>
+  <span class="li"><span class="ld" style="background:none;border-top:2px dashed #888;"></span>dead code</span>
+  <span class="li"><span style="display:inline-block;width:9px;height:9px;background:#E24B4A;border-radius:50%"></span>= bug marker</span>
+</div>
+<div id="wrap"><canvas id="c"></canvas></div>
+<div id="tt"><b id="tt-n"></b><span class="mod" id="tt-m"></span><span class="bug" id="tt-b"></span><span class="dead" id="tt-d"></span></div>
+<script>
+const DARK=matchMedia('(prefers-color-scheme:dark)').matches;
+const C={game:'#534AB7',player:'#0F6E56',board:'#3B6D11',bank:'#854F0B',cards:'#993C1D',property:'#993556',ui:'#5F5E5A',bug:'#E24B4A'};
+
+// Swimlane rows — each row has a Y center
+// Layout: top-down, grouped into logical swim lanes
+// ROW 0 (y=60):  Entry
+// ROW 1 (y=140): Game init + run
+// ROW 2 (y=230): play_turn + helpers
+// ROW 3 (y=330): jail, move_resolve, check_bankrupt, dice_roll
+// ROW 4 (y=440): handle_prop, apply_card, player actions (move/jail)
+// ROW 5 (y=550): buy, auction, pay_rent, trade, mortgage, unmortgage
+// ROW 6 (y=655): board/bank/cards leaf nodes
+// ROW 7 (y=755): property leaf nodes
+// ROW 8 (y=850): dead code zone
+
+const NODES=[
+  // entry
+  {id:'main',       lbl:'main()',                 sub:'main.py entry',       mod:'game', x:340, y:50},
+
+  // game top
+  {id:'g_init',     lbl:'Game.__init__()',         sub:'create all objects',  mod:'game', x:220, y:140},
+  {id:'run',        lbl:'run()',                   sub:'main game loop',      mod:'game', x:460, y:140},
+  {id:'find_win',   lbl:'find_winner()',           sub:'returns winner',      mod:'game', x:700, y:140, bug:'uses min() — picks LOSER not winner'},
+
+  // turn layer
+  {id:'play_turn',  lbl:'play_turn()',             sub:'dispatch one turn',   mod:'game', x:340, y:240},
+  {id:'adv_turn',   lbl:'advance_turn()',          sub:'rotate player index', mod:'game', x:100, y:240},
+  {id:'cur_player', lbl:'current_player()',        sub:'players[index]',      mod:'game', x:600, y:240},
+  {id:'dice_roll',  lbl:'dice.roll()',             sub:'randint(1,5)×2',      mod:'cards',x:840, y:240, bug:'should be randint(1,6) — max total 10 not 12'},
+  {id:'dice_dbl',   lbl:'dice.is_doubles()',       sub:'die1==die2',          mod:'cards',x:1010,y:240},
+
+  // branch layer
+  {id:'jail_turn',  lbl:'_handle_jail_turn()',     sub:'3 exit paths',        mod:'game', x:120, y:350},
+  {id:'move_res',   lbl:'_move_and_resolve()',     sub:'tile-type dispatch',  mod:'game', x:380, y:350},
+  {id:'chk_bank',   lbl:'_check_bankruptcy()',     sub:'eliminate if bal≤0',  mod:'game', x:680, y:350},
+  {id:'p_bankrupt', lbl:'player.is_bankrupt()',    sub:'balance <= 0',        mod:'player',x:900,y:350},
+
+  // tile handler layer
+  {id:'p_move',     lbl:'player.move()',           sub:'pos=(p+n)%40',        mod:'player',x:80, y:460},
+  {id:'p_jail',     lbl:'player.go_to_jail()',     sub:'pos=10, in_jail=T',   mod:'player',x:240,y:460},
+  {id:'hnd_prop',   lbl:'_handle_property_tile()',sub:'buy / auction / rent', mod:'game', x:430, y:460},
+  {id:'apply_card', lbl:'_apply_card()',           sub:'7 action types',      mod:'game', x:660, y:460},
+  {id:'deck_draw',  lbl:'deck.draw()',             sub:'sequential cycle',    mod:'cards',x:860, y:460},
+  {id:'ui_confirm', lbl:'ui.confirm()',            sub:'input=="y"',          mod:'ui',   x:1020,y:460},
+
+  // transaction layer
+  {id:'buy',        lbl:'buy_property()',          sub:'deduct + assign',     mod:'game', x:80,  y:575},
+  {id:'auction',    lbl:'auction_property()',      sub:'single-pass bidding', mod:'game', x:270, y:575},
+  {id:'pay_rent',   lbl:'pay_rent()',              sub:'deduct renter',       mod:'game', x:460, y:575, bug:'owner.add_money() never called — rent disappears'},
+  {id:'trade',      lbl:'trade()',                 sub:'swap prop + cash',    mod:'game', x:640, y:575, bug:'seller.add_money() never called — cash lost'},
+  {id:'mortgage',   lbl:'mortgage_property()',     sub:'release equity',      mod:'game', x:820, y:575},
+  {id:'unmortgage', lbl:'unmortgage_property()',   sub:'redeem at 110%',      mod:'game', x:1010,y:575},
+
+  // leaf: player money
+  {id:'p_add',      lbl:'player.add_money()',      sub:'raises if n<0',       mod:'player',x:80, y:680},
+  {id:'p_deduct',   lbl:'player.deduct_money()',   sub:'allows neg balance',  mod:'player',x:270,y:680},
+  {id:'p_add_prop', lbl:'player.add_property()',   sub:'append to list',      mod:'player',x:460,y:680},
+  {id:'p_rem_prop', lbl:'player.remove_property()',sub:'remove from list',    mod:'player',x:660,y:680},
+  {id:'p_networth', lbl:'player.net_worth()',      sub:'returns balance only',mod:'player',x:860,y:680, bug:'ignores property values entirely'},
+
+  // leaf: board / bank / cards
+  {id:'b_tile',     lbl:'board.get_tile_type()',   sub:'special/prop/blank',  mod:'board', x:80, y:780},
+  {id:'b_prop_at',  lbl:'board.get_property_at()',sub:'linear scan',          mod:'board', x:280,y:780},
+  {id:'bk_collect', lbl:'bank.collect()',          sub:'funds += n (neg ok)', mod:'bank',  x:480,y:780},
+  {id:'bk_payout',  lbl:'bank.pay_out()',          sub:'raises if insufficient',mod:'bank',x:660,y:780},
+  {id:'bk_loan',    lbl:'bank.give_loan()',        sub:'credits player',      mod:'bank',  x:850,y:780, bug:'bank._funds never reduced — creates money'},
+
+  // leaf: property
+  {id:'pr_rent',    lbl:'prop.get_rent()',         sub:'base or ×2',          mod:'property',x:200,y:880, bug:'all_owned_by uses any() not all() — doubles rent too early'},
+  {id:'pr_mort',    lbl:'prop.mortgage()',         sub:'returns price // 2',  mod:'property',x:430,y:880},
+  {id:'pr_unmort',  lbl:'prop.unmortgage()',       sub:'returns int(mv×1.1)', mod:'property',x:650,y:880},
+  {id:'grp_owned',  lbl:'group.all_owned_by()',    sub:'any() BUG→ all()',     mod:'property',x:200,y:970, bug:'any() means 1 prop triggers full-group rent'},
+
+  // ui leaves
+  {id:'ui_banner',  lbl:'ui.print_banner()',       sub:'section header',      mod:'ui',   x:1020,y:350},
+  {id:'ui_stand',   lbl:'ui.print_standings()',    sub:'sorted by net_worth', mod:'ui',   x:1020,y:575},
+  {id:'ui_board',   lbl:'ui.print_board_ownership()',sub:'property register', mod:'ui',   x:1020,y:680},
+  {id:'ui_safe',    lbl:'ui.safe_int_input()',     sub:'int(input()) or dflt',mod:'ui',   x:1020,y:780},
+
+  // dead code
+  {id:'imenu',      lbl:'interactive_menu()',      sub:'NOT wired into run()',mod:'game',  x:200,y:1070, dead:true},
+  {id:'m_mort',     lbl:'_menu_mortgage()',        sub:'',                    mod:'game',  x:400,y:1070, dead:true},
+  {id:'m_unmort',   lbl:'_menu_unmortgage()',      sub:'',                    mod:'game',  x:600,y:1070, dead:true},
+  {id:'m_trade',    lbl:'_menu_trade()',           sub:'',                    mod:'game',  x:800,y:1070, dead:true},
+  {id:'ui_pcard',   lbl:'ui.print_player_card()',  sub:'never called',        mod:'ui',    x:1020,y:880, dead:true},
+];
+
+const EDGES=[
+  {s:'main',t:'g_init'},{s:'main',t:'run'},
+  {s:'run',t:'play_turn'},{s:'run',t:'find_win'},{s:'run',t:'ui_stand'},{s:'run',t:'ui_banner'},
+  {s:'find_win',t:'p_networth'},
+  {s:'play_turn',t:'adv_turn'},{s:'play_turn',t:'cur_player'},
+  {s:'play_turn',t:'dice_roll'},{s:'play_turn',t:'dice_dbl'},
+  {s:'play_turn',t:'jail_turn'},{s:'play_turn',t:'move_res'},
+  {s:'play_turn',t:'p_jail'},
+  {s:'jail_turn',t:'ui_confirm'},{s:'jail_turn',t:'p_jail'},
+  {s:'jail_turn',t:'dice_roll'},{s:'jail_turn',t:'move_res'},
+  {s:'jail_turn',t:'p_deduct'},{s:'jail_turn',t:'bk_collect'},
+  {s:'move_res',t:'p_move'},{s:'move_res',t:'b_tile'},
+  {s:'move_res',t:'hnd_prop'},{s:'move_res',t:'apply_card'},
+  {s:'move_res',t:'chk_bank'},{s:'move_res',t:'b_prop_at'},
+  {s:'move_res',t:'deck_draw'},{s:'move_res',t:'p_deduct'},
+  {s:'move_res',t:'bk_collect'},
+  {s:'chk_bank',t:'p_bankrupt'},
+  {s:'hnd_prop',t:'buy'},{s:'hnd_prop',t:'auction'},{s:'hnd_prop',t:'pay_rent'},
+  {s:'apply_card',t:'bk_payout'},{s:'apply_card',t:'p_add'},
+  {s:'apply_card',t:'p_deduct'},{s:'apply_card',t:'bk_collect'},
+  {s:'apply_card',t:'p_jail'},{s:'apply_card',t:'p_add_prop'},
+  {s:'buy',t:'p_deduct'},{s:'buy',t:'p_add_prop'},{s:'buy',t:'bk_collect'},
+  {s:'auction',t:'p_deduct'},{s:'auction',t:'p_add_prop'},
+  {s:'auction',t:'bk_collect'},{s:'auction',t:'ui_safe'},
+  {s:'pay_rent',t:'p_deduct'},{s:'pay_rent',t:'pr_rent'},
+  {s:'trade',t:'p_deduct'},{s:'trade',t:'p_add_prop'},{s:'trade',t:'p_rem_prop'},
+  {s:'mortgage',t:'pr_mort'},{s:'mortgage',t:'p_add'},{s:'mortgage',t:'bk_collect'},
+  {s:'unmortgage',t:'pr_unmort'},{s:'unmortgage',t:'p_deduct'},{s:'unmortgage',t:'bk_collect'},
+  {s:'pr_rent',t:'grp_owned'},
+  {s:'ui_stand',t:'p_networth'},
+  // dead
+  {s:'imenu',t:'ui_stand',d:true},{s:'imenu',t:'ui_board',d:true},
+  {s:'imenu',t:'m_mort',d:true},{s:'imenu',t:'m_unmort',d:true},
+  {s:'imenu',t:'m_trade',d:true},{s:'imenu',t:'bk_loan',d:true},
+  {s:'m_mort',t:'mortgage',d:true},{s:'m_unmort',t:'unmortgage',d:true},
+  {s:'m_trade',t:'trade',d:true},
+];
+
+const active=new Set(['game','player','board','bank','cards','property','ui','bug']);
+let hov=null;
+
+const canvas=document.getElementById('c');
+const ctx2=canvas.getContext('2d');
+
+// Canvas size
+const CW=1150, CH=1120;
+canvas.width=CW; canvas.height=CH;
+canvas.style.width=CW+'px'; canvas.style.height=CH+'px';
+
+function nodeColor(n){
+  if(n.bug) return C.bug;
+  return C[n.mod]||'#888';
+}
+function rgba(hex,a){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function nodeVisible(n){
+  if(n.bug && active.has('bug')) return true;
+  return active.has(n.mod);
+}
+function edgeVisible(e){
+  const s=NODES.find(n=>n.id===e.s), t=NODES.find(n=>n.id===e.t);
+  return s&&t&&nodeVisible(s)&&nodeVisible(t);
+}
+
+// Measure node box
+function nw(n){
+  ctx2.font='500 11.5px system-ui';
+  const a=ctx2.measureText(n.lbl).width;
+  ctx2.font='10px system-ui';
+  const b=n.sub?ctx2.measureText(n.sub).width:0;
+  return Math.max(a,b)+28;
+}
+function nh(n){return n.sub?46:30;}
+
+function boxEdge(n,tx,ty){
+  const w=nw(n)/2, h=nh(n)/2;
+  const dx=tx-n.x, dy=ty-n.y;
+  const len=Math.sqrt(dx*dx+dy*dy)||1;
+  const ux=dx/len, uy=dy/len;
+  const tx2=Math.abs(w/(ux||1e-9)), ty2=Math.abs(h/(uy||1e-9));
+  const t=Math.min(tx2,ty2);
+  return {x:n.x+ux*t, y:n.y+uy*t};
+}
+
+function drawArrow(x1,y1,x2,y2,col,dashed){
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy)||1;
+  const ux=dx/len,uy=dy/len;
+  const hs=7;
+  const ex=x2-ux*hs, ey=y2-uy*hs;
+  ctx2.beginPath();
+  ctx2.setLineDash(dashed?[5,4]:[]);
+  ctx2.moveTo(x1,y1); ctx2.lineTo(ex,ey);
+  ctx2.strokeStyle=col; ctx2.lineWidth=1.2; ctx2.stroke();
+  ctx2.setLineDash([]);
+  // arrowhead
+  const ax=-uy*3.5, ay=ux*3.5;
+  ctx2.beginPath();
+  ctx2.moveTo(x2,y2);
+  ctx2.lineTo(ex+ax,ey+ay);
+  ctx2.lineTo(ex-ax,ey-ay);
+  ctx2.closePath();
+  ctx2.fillStyle=col; ctx2.fill();
+}
+
+// Draw swimlane bands
+function drawLanes(){
+  const lanes=[
+    {y:15, h:80,  label:'entry'},
+    {y:100,h:90,  label:'init / run'},
+    {y:195,h:95,  label:'turn loop'},
+    {y:295,h:100, label:'turn branches'},
+    {y:400,h:100, label:'tile handlers'},
+    {y:505,h:105, label:'transactions'},
+    {y:615,h:100, label:'player ops'},
+    {y:720,h:105, label:'board / bank / cards leaves'},
+    {y:830,h:110, label:'property leaves'},
+    {y:945,h:105, label:'dead code'},
+  ];
+  for(const l of lanes){
+    ctx2.fillStyle=DARK?'rgba(255,255,255,0.015)':'rgba(0,0,0,0.018)';
+    ctx2.fillRect(0,l.y,CW,l.h);
+    ctx2.font='10px system-ui';
+    ctx2.fillStyle=DARK?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
+    ctx2.textAlign='left';
+    ctx2.textBaseline='top';
+    ctx2.fillText(l.label,6,l.y+3);
+  }
+}
+
+function draw(){
+  ctx2.clearRect(0,0,CW,CH);
+  drawLanes();
+
+  // edges
+  for(const e of EDGES){
+    if(!edgeVisible(e)) continue;
+    const s=NODES.find(n=>n.id===e.s), t=NODES.find(n=>n.id===e.t);
+    const p1=boxEdge(s,t.x,t.y), p2=boxEdge(t,s.x,s.y);
+    const dead=s.dead||t.dead||e.d;
+    const col=dead?rgba('#888',0.3):rgba(nodeColor(s),hov&&(hov.id===s.id||hov.id===t.id)?0.8:0.4);
+    drawArrow(p1.x,p1.y,p2.x,p2.y,col,dead);
+  }
+
+  // nodes
+  for(const n of NODES){
+    if(!nodeVisible(n)) continue;
+    const w=nw(n),h=nh(n);
+    const x=n.x-w/2, y=n.y-h/2;
+    const col=nodeColor(n);
+    const isHov=hov&&hov.id===n.id;
+
+    // shadow on hover
+    if(isHov){
+      ctx2.shadowColor=rgba(col,0.4);
+      ctx2.shadowBlur=12;
+    }
+
+    // fill
+    ctx2.beginPath();
+    ctx2.roundRect(x,y,w,h,6);
+    ctx2.fillStyle=rgba(col, isHov?0.22:0.11);
+    ctx2.fill();
+
+    // border
+    ctx2.lineWidth=isHov?2:1.5;
+    if(n.dead){ctx2.setLineDash([5,3]); ctx2.strokeStyle=rgba(col,0.35);}
+    else{ctx2.setLineDash([]); ctx2.strokeStyle=rgba(col, isHov?1:0.6);}
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+    ctx2.shadowBlur=0;
+
+    // bug dot
+    if(n.bug){
+      ctx2.beginPath();
+      ctx2.arc(x+w-5, y+5, 5, 0, Math.PI*2);
+      ctx2.fillStyle='#E24B4A';
+      ctx2.fill();
+    }
+
+    // text
+    ctx2.textAlign='center'; ctx2.textBaseline='middle';
+    const ty=n.sub? n.y-8 : n.y;
+    ctx2.font='500 11.5px system-ui';
+    ctx2.fillStyle=n.dead? rgba(col,0.45) : rgba(col, DARK?1.2:1.0);
+    ctx2.fillText(n.lbl, n.x, ty);
+    if(n.sub){
+      ctx2.font='10px system-ui';
+      ctx2.fillStyle=n.dead? rgba(col,0.3) : rgba(col, DARK?0.7:0.65);
+      ctx2.fillText(n.sub, n.x, n.y+10);
+    }
+  }
+}
+
+// hit test
+function hit(mx,my){
+  for(const n of NODES){
+    if(!nodeVisible(n)) continue;
+    const w=nw(n)/2, h=nh(n)/2;
+    if(mx>=n.x-w&&mx<=n.x+w&&my>=n.y-h&&my<=n.y+h) return n;
+  }
+  return null;
+}
+
+canvas.addEventListener('mousemove',e=>{
+  const r=canvas.getBoundingClientRect();
+  const sx=CW/r.width, sy=CH/r.height;
+  const mx=(e.clientX-r.left)*sx, my=(e.clientY-r.top)*sy;
+  hov=hit(mx,my);
+  const tt=document.getElementById('tt');
+  if(hov){
+    document.getElementById('tt-n').textContent=hov.lbl;
+    document.getElementById('tt-m').textContent=hov.mod+'.py'+(hov.sub?' — '+hov.sub:'');
+    const be=document.getElementById('tt-b');
+    be.textContent=hov.bug?'BUG: '+hov.bug:'';
+    be.style.display=hov.bug?'block':'none';
+    const de=document.getElementById('tt-d');
+    de.textContent=hov.dead?'Dead code — never called from run()':'';
+    de.style.display=hov.dead?'block':'none';
+    tt.style.display='block';
+    const cx=e.clientX-r.left, cy=e.clientY-r.top;
+    tt.style.left=Math.min(cx+14,r.width-270)+'px';
+    tt.style.top=Math.max(cy-10,0)+'px';
+  } else {
+    tt.style.display='none';
+  }
+  draw();
+});
+canvas.addEventListener('mouseleave',()=>{hov=null;document.getElementById('tt').style.display='none';draw();});
+
+document.querySelectorAll('.fb[data-m]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const m=b.dataset.m;
+    if(active.has(m)){active.delete(m);b.classList.remove('on');}
+    else{active.add(m);b.classList.add('on');}
+    draw();
+  });
+});
+document.getElementById('rst').addEventListener('click',()=>{
+  ['game','player','board','bank','cards','property','ui','bug'].forEach(m=>active.add(m));
+  document.querySelectorAll('.fb[data-m]').forEach(b=>b.classList.add('on'));
+  draw();
+});
+
+draw();
+</script>
