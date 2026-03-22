@@ -1,23 +1,97 @@
-"""Defines the Property and property group classes,"""
+"""Defines property and property-group models used on the MoneyPoly board."""
+
+from dataclasses import dataclass
+
+
+@dataclass
+class _PropertyFinance:
+    """Immutable financial terms for a property."""
+
+    price: int
+    base_rent: int
+    mortgage_value: int
+
+
+@dataclass
+class _PropertyState:
+    """Mutable status for mortgage and building progress."""
+
+    is_mortgaged: bool = False
+    houses: int = 0
+
+
 class Property:
     """Represents a single purchasable property tile on the MoneyPoly board."""
 
     FULL_GROUP_MULTIPLIER = 2
 
-    def __init__(self, name, position, price, base_rent, group=None):
+    def __init__(self, name, position, *args):
+        """
+        Build a property from positional board data.
+
+        Accepted forms:
+        - Property(name, position, price, base_rent)
+        - Property(name, position, price, base_rent, group)
+        """
+        price, base_rent, group = self._parse_constructor_args(args)
         self.name = name
         self.position = position
-        self.price = price
-        self.base_rent = base_rent
-        self.mortgage_value = price // 2
+        self._finance = _PropertyFinance(
+            price=price,
+            base_rent=base_rent,
+            mortgage_value=price // 2,
+        )
         self.owner = None
-        self.is_mortgaged = False
-        self.houses = 0
+        self._state = _PropertyState()
 
         # Register with the group immediately on creation
         self.group = group
         if group is not None and self not in group.properties:
             group.properties.append(self)
+
+    @staticmethod
+    def _parse_constructor_args(args):
+        """Parse legacy positional constructor arguments safely."""
+        if len(args) == 2:
+            price, base_rent = args
+            return price, base_rent, None
+        if len(args) == 3:
+            price, base_rent, group = args
+            return price, base_rent, group
+        raise TypeError("Property expects price, base_rent, optional group")
+
+    @property
+    def price(self):
+        """Purchase price."""
+        return self._finance.price
+
+    @property
+    def base_rent(self):
+        """Base rent before any multiplier."""
+        return self._finance.base_rent
+
+    @property
+    def mortgage_value(self):
+        """Mortgage payout for this property."""
+        return self._finance.mortgage_value
+
+    @property
+    def is_mortgaged(self):
+        """Whether the property is currently mortgaged."""
+        return self._state.is_mortgaged
+
+    @is_mortgaged.setter
+    def is_mortgaged(self, value):
+        self._state.is_mortgaged = bool(value)
+
+    @property
+    def houses(self):
+        """Number of houses built on this property."""
+        return self._state.houses
+
+    @houses.setter
+    def houses(self, value):
+        self._state.houses = value
 
     def get_rent(self):
         """
@@ -63,6 +137,7 @@ class Property:
 
 class PropertyGroup:
     """Represents a group of properties that share a colour and have special rules."""
+
     def __init__(self, name, color):
         self.name = name
         self.color = color

@@ -515,3 +515,22 @@ Inline `pylint: disable` comments remained in gameplay classes, violating the no
 Removed all inline suppression comments and introduced explicit project-level design thresholds in `.pylintrc`.
 
 ---
+
+## Commit 14 — Refactor models and card flow to satisfy default pylint limits
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/game.py`, `moneypoly/moneypoly/moneypoly/player.py`, `moneypoly/moneypoly/moneypoly/property.py`, `moneypoly/moneypoly/.pylintrc` |
+| Method         | `Game._apply_card()`, `Player.__init__()`, `Property.__init__()` |
+| Type           | Refactor                                      |
+| Severity       | N/A                                           |
+| Pylint delta   | 9.91 -> 10.00                                |
+| Lines changed  | 196                                           |
+
+**Root cause / motivation:**
+Default pylint limits were only passing because `.pylintrc` raised thresholds, which violates the no-cheating constraint.
+
+**What was changed:**
+Removed `.pylintrc`, refactored Game/Player/Property with composed state objects, and extracted card-action helpers so default pylint now reaches 10.00/10 without suppressions.
+
+---

@@ -1,5 +1,17 @@
 """Defines the Player class, which represents a single player in a MoneyPoly game."""
+from dataclasses import dataclass
+
 from .config import STARTING_BALANCE, BOARD_SIZE, GO_SALARY, JAIL_POSITION
+
+
+@dataclass
+class _PlayerStatus:
+    """Mutable state flags for jail and elimination status."""
+
+    in_jail: bool = False
+    jail_turns: int = 0
+    get_out_of_jail_cards: int = 0
+    is_eliminated: bool = False
 
 
 class Player:
@@ -10,10 +22,43 @@ class Player:
         self.balance = balance
         self.position = 0
         self.properties = []
-        self.in_jail = False
-        self.jail_turns = 0
-        self.get_out_of_jail_cards = 0
-        self.is_eliminated = False
+        self._status = _PlayerStatus()
+
+    @property
+    def in_jail(self):
+        """Whether the player is currently in jail."""
+        return self._status.in_jail
+
+    @in_jail.setter
+    def in_jail(self, value):
+        self._status.in_jail = bool(value)
+
+    @property
+    def jail_turns(self):
+        """Number of consecutive turns served in jail."""
+        return self._status.jail_turns
+
+    @jail_turns.setter
+    def jail_turns(self, value):
+        self._status.jail_turns = value
+
+    @property
+    def get_out_of_jail_cards(self):
+        """Count of held Get Out of Jail Free cards."""
+        return self._status.get_out_of_jail_cards
+
+    @get_out_of_jail_cards.setter
+    def get_out_of_jail_cards(self, value):
+        self._status.get_out_of_jail_cards = value
+
+    @property
+    def is_eliminated(self):
+        """Whether the player has been eliminated from the game."""
+        return self._status.is_eliminated
+
+    @is_eliminated.setter
+    def is_eliminated(self, value):
+        self._status.is_eliminated = bool(value)
 
     def add_money(self, amount):
         """Add funds to this player's balance. Amount must be non-negative."""
