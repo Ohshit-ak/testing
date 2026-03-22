@@ -43,6 +43,13 @@ class TestPlayer:
         player_a.balance = 42
         assert player_a.net_worth() == 42
 
+    def test_net_worth_includes_unmortgaged_property_values(self, player_a):
+        # Verifies net worth rule includes value from unmortgaged owned properties.
+        player_a.balance = 100
+        prop = Property("P", 1, 200, 10)
+        player_a.add_property(prop)
+        assert player_a.net_worth() == 200
+
     def test_move_wraps_position(self, player_a):
         # Verifies movement branch wraps around board boundaries.
         player_a.position = 39

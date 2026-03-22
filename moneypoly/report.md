@@ -344,3 +344,22 @@ Card collection logic skipped players who could not pay full value, creating inc
 Switched both collection branches to transfer `min(value, other.balance)` from every other player.
 
 ---
+
+## Commit 5 — Include property values in net worth
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/player.py`    |
+| Method         | `net_worth()`                                 |
+| Type           | Bug Fix                                       |
+| Severity       | Medium                                        |
+| Pylint delta   | no change                                     |
+| Lines changed  | 4                                             |
+
+**Root cause / motivation:**
+Net worth excluded property holdings, producing incorrect standings and winner valuation.
+
+**What was changed:**
+Updated net worth computation to include mortgage values of unmortgaged owned properties.
+
+---

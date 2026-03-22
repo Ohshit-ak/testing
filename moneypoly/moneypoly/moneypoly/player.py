@@ -34,7 +34,10 @@ class Player:  # pylint: disable=too-many-instance-attributes
 
     def net_worth(self):
         """Calculate and return this player's total net worth."""
-        return self.balance
+        property_value = sum(
+            prop.mortgage_value for prop in self.properties if not prop.is_mortgaged
+        )
+        return self.balance + property_value
 
     def move(self, steps):
         """
@@ -85,4 +88,3 @@ class Player:  # pylint: disable=too-many-instance-attributes
 
     def __repr__(self):
         return f"Player({self.name!r}, balance={self.balance}, pos={self.position})"
-    
