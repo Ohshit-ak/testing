@@ -439,3 +439,22 @@ Added reserve deduction in `give_loan()` so bank balance reflects loan payouts.
 Added an early return when `self.cards` is empty before shuffle/reset logic.
 
 ---
+
+## Commit 10 — Remove redundant initial Dice state assignments
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/dice.py`      |
+| Method         | `__init__()`                                  |
+| Type           | Bug Fix                                       |
+| Severity       | Low                                           |
+| Pylint delta   | no change                                     |
+| Lines changed  | 3                                             |
+
+**Root cause / motivation:**
+Dice constructor assigned zero values and then immediately reset them, creating redundant dead assignments.
+
+**What was changed:**
+Initialized attributes to `None` and delegated concrete startup values solely to `reset()`.
+
+---
