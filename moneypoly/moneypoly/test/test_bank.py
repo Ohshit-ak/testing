@@ -51,6 +51,13 @@ class TestBank:
         bank.give_loan(p, 10)
         assert bank.loan_count() == 1
 
+    def test_give_loan_decreases_bank_funds(self, bank):
+        # Verifies loan issuance reduces bank reserves by loan amount.
+        p = Player("P")
+        before = bank.get_balance()
+        bank.give_loan(p, 10)
+        assert bank.get_balance() == before - 10
+
     def test_total_loans_issued_returns_sum(self, bank):
         # Verifies loan aggregation logic over issued loan entries.
         p = Player("P")

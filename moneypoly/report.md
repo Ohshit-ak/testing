@@ -401,3 +401,22 @@ Identity-based boolean comparison can be brittle and less robust than truthiness
 Replaced `is True` with a direct truthiness check for `is_mortgaged`.
 
 ---
+
+## Commit 8 — Deduct bank reserves when giving loans
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/bank.py`      |
+| Method         | `give_loan()`                                 |
+| Type           | Bug Fix                                       |
+| Severity       | Medium                                        |
+| Pylint delta   | no change                                     |
+| Lines changed  | 1                                             |
+
+**Root cause / motivation:**
+Loan issuance credited players but left bank reserves unchanged, effectively minting money.
+
+**What was changed:**
+Added reserve deduction in `give_loan()` so bank balance reflects loan payouts.
+
+---
