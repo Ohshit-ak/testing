@@ -14,7 +14,8 @@ def print_player_card(player):
     print(f"  Balance : ${player.balance:,}")
     print(f"  Worth   : ${player.net_worth():,}")
     print(f"  Position: {player.position}")
-    print(jail_line, end="")
+    if jail_line:
+        print(jail_line, end="")
     if player.get_out_of_jail_cards:
         print(f"  Jail cards: {player.get_out_of_jail_cards}")
     if player.properties:

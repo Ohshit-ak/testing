@@ -458,3 +458,22 @@ Dice constructor assigned zero values and then immediately reset them, creating 
 Initialized attributes to `None` and delegated concrete startup values solely to `reset()`.
 
 ---
+
+## Commit 11 — Print jail line only when non-empty
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/ui.py`        |
+| Method         | `print_player_card()`                         |
+| Type           | Bug Fix                                       |
+| Severity       | Low                                           |
+| Pylint delta   | no change                                     |
+| Lines changed  | 2                                             |
+
+**Root cause / motivation:**
+Player-card rendering always called `print` with an empty jail line for non-jailed players.
+
+**What was changed:**
+Wrapped jail-line printing in a conditional so output is emitted only when relevant.
+
+---
