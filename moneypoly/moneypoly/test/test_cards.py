@@ -37,6 +37,13 @@ class TestCardDeck:
         deck.reshuffle()
         assert deck.index == 0
 
+    def test_reshuffle_empty_deck_keeps_index(self):
+        # Verifies empty deck guard branch in reshuffle.
+        deck = CardDeck([])
+        deck.index = 3
+        deck.reshuffle()
+        assert deck.index == 3
+
     def test_cards_remaining_uses_modulo(self):
         # Verifies remaining-card branch with wrapped index value.
         deck = CardDeck([{"id": 1}, {"id": 2}, {"id": 3}])

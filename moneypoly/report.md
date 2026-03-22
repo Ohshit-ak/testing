@@ -420,3 +420,22 @@ Loan issuance credited players but left bank reserves unchanged, effectively min
 Added reserve deduction in `give_loan()` so bank balance reflects loan payouts.
 
 ---
+
+## Commit 9 — Guard reshuffle on empty card deck
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/cards.py`     |
+| Method         | `reshuffle()`                                 |
+| Type           | Bug Fix                                       |
+| Severity       | Low                                           |
+| Pylint delta   | no change                                     |
+| Lines changed  | 2                                             |
+
+**Root cause / motivation:**
+`reshuffle()` lacked an empty-deck guard unlike `draw()` and `peek()`, creating inconsistent API behavior.
+
+**What was changed:**
+Added an early return when `self.cards` is empty before shuffle/reset logic.
+
+---

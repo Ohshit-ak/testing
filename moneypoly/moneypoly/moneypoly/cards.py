@@ -60,6 +60,8 @@ class CardDeck:
 
     def reshuffle(self):
         """Shuffle the deck and reset the draw index."""
+        if not self.cards:
+            return
         random.shuffle(self.cards)
         self.index = 0
 
