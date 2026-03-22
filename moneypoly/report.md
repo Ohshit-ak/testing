@@ -287,3 +287,22 @@ Mortgage payout incorrectly invoked a negative bank collection, which is a misle
 Removed the negative collect call so issuing a mortgage no longer performs this inverse bank transaction.
 
 ---
+
+## Commit 2 — Credit seller during trade cash transfer
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/game.py`      |
+| Method         | `trade()`                                     |
+| Type           | Bug Fix                                       |
+| Severity       | Critical                                      |
+| Pylint delta   | no change                                     |
+| Lines changed  | 1                                             |
+
+**Root cause / motivation:**
+Trade flow deducted the buyer but never credited the seller, causing money to disappear.
+
+**What was changed:**
+Added seller credit immediately after buyer deduction to preserve transaction balance.
+
+---
