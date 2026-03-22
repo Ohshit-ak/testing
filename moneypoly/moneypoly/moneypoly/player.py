@@ -2,7 +2,7 @@
 from .config import STARTING_BALANCE, BOARD_SIZE, GO_SALARY, JAIL_POSITION
 
 
-class Player:  # pylint: disable=too-many-instance-attributes
+class Player:
     """Represents a single player in a MoneyPoly game."""
 
     def __init__(self, name, balance=STARTING_BALANCE):
@@ -14,7 +14,6 @@ class Player:  # pylint: disable=too-many-instance-attributes
         self.jail_turns = 0
         self.get_out_of_jail_cards = 0
         self.is_eliminated = False
-
 
     def add_money(self, amount):
         """Add funds to this player's balance. Amount must be non-negative."""
@@ -63,7 +62,6 @@ class Player:  # pylint: disable=too-many-instance-attributes
         self.in_jail = True
         self.jail_turns = 0
 
-
     def add_property(self, prop):
         """Add a property tile to this player's holdings."""
         if prop not in self.properties:
@@ -77,7 +75,6 @@ class Player:  # pylint: disable=too-many-instance-attributes
     def count_properties(self):
         """Return the number of properties this player currently owns."""
         return len(self.properties)
-
 
     def status_line(self):
         """Return a concise one-line status string for this player."""

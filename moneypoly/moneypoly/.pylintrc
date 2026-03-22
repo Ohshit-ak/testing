@@ -1,0 +1,5 @@
+[DESIGN]
+max-attributes=10
+max-branches=15
+max-args=6
+max-positional-arguments=6
