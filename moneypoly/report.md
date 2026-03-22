@@ -534,3 +534,22 @@ Default pylint limits were only passing because `.pylintrc` raised thresholds, w
 Removed `.pylintrc`, refactored Game/Player/Property with composed state objects, and extracted card-action helpers so default pylint now reaches 10.00/10 without suppressions.
 
 ---
+
+## Commit 15 — Stop tracking generated pycache artifacts
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/__pycache__/...`, `moneypoly/moneypoly/moneypoly/__pycache__/...` |
+| Method         | N/A                                           |
+| Type           | Refactor                                      |
+| Severity       | Low                                           |
+| Pylint delta   | no change                                     |
+| Lines changed  | 11                                            |
+
+**Root cause / motivation:**
+Compiled cache artifacts were tracked in git, causing repeated dirty working trees after normal test and lint runs.
+
+**What was changed:**
+Removed tracked `__pycache__`/`.pyc` files from version control while leaving ignore rules in place so future generated caches stay untracked.
+
+---
