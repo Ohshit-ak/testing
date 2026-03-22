@@ -268,3 +268,22 @@ Conclusion:
 
 - Previous bug fixes (Error #1 to Error #7) remain stable.
 - Modular test suite remains valid and non-regressive under repeated execution.
+
+## Commit 1 — Remove negative bank collect in mortgage
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/game.py`      |
+| Method         | `mortgage_property()`                         |
+| Type           | Bug Fix                                       |
+| Severity       | Medium                                        |
+| Pylint delta   | no change                                     |
+| Lines changed  | 1                                             |
+
+**Root cause / motivation:**
+Mortgage payout incorrectly invoked a negative bank collection, which is a misleading money-flow operation.
+
+**What was changed:**
+Removed the negative collect call so issuing a mortgage no longer performs this inverse bank transaction.
+
+---

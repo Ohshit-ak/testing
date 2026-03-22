@@ -172,7 +172,6 @@ class Game:  # pylint: disable=too-many-instance-attributes
             print(f"  {prop.name} is already mortgaged.")
             return False
         player.add_money(payout)
-        self.bank.collect(-payout)
         print(f"  {player.name} mortgaged {prop.name} and received ${payout}.")
         return True
 
@@ -468,4 +467,3 @@ class Game:  # pylint: disable=too-many-instance-attributes
             f"  Cash to receive from {partner.name}: $", default=0
         )
         self.trade(player, partner, chosen_prop, cash)
-        
