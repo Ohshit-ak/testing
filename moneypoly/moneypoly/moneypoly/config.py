@@ -1,3 +1,5 @@
+"""Configuration constants for MoneyPoly gameplay and board rules."""
+
 STARTING_BALANCE = 1500
 GO_SALARY = 200
 BOARD_SIZE = 40

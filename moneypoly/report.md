@@ -477,3 +477,22 @@ Player-card rendering always called `print` with an empty jail line for non-jail
 Wrapped jail-line printing in a conditional so output is emitted only when relevant.
 
 ---
+
+## Commit 12 — Establish package metadata for pylint analysis
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/__init__.py`, `moneypoly/moneypoly/moneypoly/config.py` |
+| Method         | N/A                                           |
+| Type           | Refactor                                      |
+| Severity       | N/A                                           |
+| Pylint delta   | 9.13 -> pending rerun                         |
+| Lines changed  | 3                                             |
+
+**Root cause / motivation:**
+Pylint could not resolve package-relative imports correctly without package metadata and flagged missing module documentation.
+
+**What was changed:**
+Added package `__init__.py` and a module docstring in `config.py` to improve static analysis correctness.
+
+---
