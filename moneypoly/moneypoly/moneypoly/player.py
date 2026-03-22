@@ -48,9 +48,12 @@ class Player:  # pylint: disable=too-many-instance-attributes
         previous_position = self.position
         self.position = (self.position + steps) % BOARD_SIZE
 
-        if steps > 0 and self.position <= previous_position:
+        if steps > 0 and (
+            self.position < previous_position
+            or (previous_position != 0 and self.position == 0)
+        ):
             self.add_money(GO_SALARY)
-            print(f"  {self.name} landed on Go and collected ${GO_SALARY}.")
+            print(f"  {self.name} passed Go and collected ${GO_SALARY}.")
 
         return self.position
 

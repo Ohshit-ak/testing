@@ -363,3 +363,22 @@ Net worth excluded property holdings, producing incorrect standings and winner v
 Updated net worth computation to include mortgage values of unmortgaged owned properties.
 
 ---
+
+## Commit 6 — Prevent false GO salary at position 0 lap edge case
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/player.py`    |
+| Method         | `move()`                                      |
+| Type           | Bug Fix                                       |
+| Severity       | Medium                                        |
+| Pylint delta   | no change                                     |
+| Lines changed  | 5                                             |
+
+**Root cause / motivation:**
+The prior condition granted GO salary when a move started and ended at position 0 without actually crossing from a non-GO tile.
+
+**What was changed:**
+Refined pass-Go detection condition to match proper wrap semantics and updated output text accordingly.
+
+---

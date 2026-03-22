@@ -68,6 +68,13 @@ class TestPlayer:
         player_a.move(0)
         assert player_a.balance == before
 
+    def test_move_no_salary_for_exact_full_lap_from_go(self, player_a):
+        # Verifies pass-Go rule does not award salary when starting/ending at GO without crossing from non-GO.
+        player_a.position = 0
+        before = player_a.balance
+        player_a.move(40)
+        assert player_a.balance == before
+
     def test_go_to_jail_sets_position(self, player_a):
         # Verifies jail transition sets player to jail location.
         player_a.go_to_jail()
