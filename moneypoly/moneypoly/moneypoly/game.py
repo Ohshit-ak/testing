@@ -321,7 +321,7 @@ class Game:  # pylint: disable=too-many-instance-attributes
         elif action == "move_to":
             old_pos = player.position
             player.position = value
-            if value < old_pos:
+            if value < old_pos or (old_pos != 0 and value == 0):
                 player.add_money(GO_SALARY)
                 print(f"  {player.name} passed Go and collected ${GO_SALARY}.")
             tile = self.board.get_tile_type(value)

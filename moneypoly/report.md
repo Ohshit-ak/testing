@@ -306,3 +306,22 @@ Trade flow deducted the buyer but never credited the seller, causing money to di
 Added seller credit immediately after buyer deduction to preserve transaction balance.
 
 ---
+
+## Commit 3 — Fix card move-to pass-Go salary check
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/game.py`      |
+| Method         | `_apply_card()`                               |
+| Type           | Bug Fix                                       |
+| Severity       | Medium                                        |
+| Pylint delta   | no change                                     |
+| Lines changed  | 1                                             |
+
+**Root cause / motivation:**
+The move-to card salary check missed edge wrap semantics around GO in specific boundary transitions.
+
+**What was changed:**
+Expanded the condition used to detect pass-Go when resolving move-to card destinations.
+
+---
