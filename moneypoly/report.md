@@ -382,3 +382,22 @@ The prior condition granted GO salary when a move started and ended at position 
 Refined pass-Go detection condition to match proper wrap semantics and updated output text accordingly.
 
 ---
+
+## Commit 7 — Use truthiness for mortgaged check in purchasable logic
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/board.py`     |
+| Method         | `is_purchasable()`                            |
+| Type           | Bug Fix                                       |
+| Severity       | Low                                           |
+| Pylint delta   | no change                                     |
+| Lines changed  | 1                                             |
+
+**Root cause / motivation:**
+Identity-based boolean comparison can be brittle and less robust than truthiness checks.
+
+**What was changed:**
+Replaced `is True` with a direct truthiness check for `is_mortgaged`.
+
+---
