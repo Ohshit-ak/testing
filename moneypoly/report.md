@@ -137,3 +137,113 @@ Module snapshot:
 
 - No additional source-code defects were discovered during this strict 100% line+branch coverage run.
 - Existing previously fixed defects remain resolved under full-coverage execution.
+
+
+### ITERATION 6: Requested Full Monopoly White-Box Audit and Final Consolidation
+
+## Phase 1 - Deep Logical Audit (Rule vs Implementation)
+
+The audit below compares Monopoly rules against the current CLI implementation.
+
+### Correctly Implemented or Fixed
+
+- Two-dice rolling now uses a valid six-sided range per die (1-6 each), producing totals in 2-12.
+- Board movement wraps on a 40-tile board and now pays GO salary when passing or landing on GO.
+- Landing on unowned property supports buy/auction/skip flow.
+- Landing on owned property charges rent unless the property is mortgaged.
+- Rent transfer now credits owner correctly.
+- Color-group bonus rent now requires full group ownership (not partial ownership).
+- Go To Jail tile and jail card logic sends player to jail.
+- Jail release logic supports card use, optional fine payment, and mandatory release after 3 turns.
+- Bankrupt players are eliminated and removed from active turn rotation.
+- Winner logic now picks highest net worth player.
+
+### Detected Gaps vs Full Monopoly Rules (Documented)
+
+- Houses/hotels are not implemented in current game flow.
+- Even-building rule across a color group is not implemented.
+- Build prerequisites (own full group before houses/hotels) are not implemented.
+- Bankruptcy process does not force mortgage liquidation workflow before elimination.
+
+These are documented as missing gameplay features in the current codebase design rather than regressions introduced by recent changes.
+
+## Phase 2 - White-Box Test Design Summary
+
+Implemented a module-mapped pytest suite with one source module per test file and shared setup fixtures:
+
+- test/conftest.py
+- test/test_bank.py
+- test/test_board.py
+- test/test_cards.py
+- test/test_config.py
+- test/test_dice.py
+- test/test_game.py
+- test/test_main.py
+- test/test_player.py
+- test/test_property.py
+- test/test_ui.py
+
+Design constraints met:
+
+- Branch-driven testing of decision paths, loops, and try/except flow.
+- CLI I/O mocked via monkeypatch/capsys so tests do not block.
+- Boundary and edge-state coverage for money, movement, jail, rent, ownership, and menu input handling.
+- Single-behavior-focused test functions with concise comments indicating rule intent and bug-catching purpose.
+
+## Phase 3 - Failures and Root-Cause Classification
+
+The initial white-box run identified 7 logical defects. Each was root-caused and fixed in source code.
+
+## Phase 4 - One-Bug-Per-Commit Fix Record
+
+| Error # | Location | Error Type | Monopoly Rule Violated | Fix Applied |
+|---------|----------|------------|------------------------|-------------|
+| 1 | moneypoly/moneypoly/dice.py | Wrong formula / calculation | Players roll two six-sided dice (2-12 total) | Changed roll() from randint(1, 5) to randint(1, 6) for both dice. |
+| 2 | moneypoly/moneypoly/player.py | Missing Monopoly rule | Collect $200 when passing or landing on GO | Updated move() to award GO salary on wrap-around (passing GO), not only exact landing path. |
+| 3 | moneypoly/moneypoly/property.py | Wrong formula / calculation | Monopoly bonus rent applies only when full color group is owned | Replaced partial-owner check with full-group all-owned check. |
+| 4 | moneypoly/moneypoly/game.py | Inverted or wrong condition | Player may buy an unowned property if they can afford price exactly | Changed buy affordability check from <= price to < price. |
+| 5 | moneypoly/moneypoly/game.py | Wrong order of operations | Landing on owned property requires rent payment to owner | Added owner credit in pay_rent() after tenant deduction. |
+| 6 | moneypoly/moneypoly/game.py | Silent wrong behavior | Jail fine payment must reduce paying player's cash | Added player.deduct_money(JAIL_FINE) in voluntary jail-release branch. |
+| 7 | moneypoly/moneypoly/game.py | Wrong formula / calculation | Last remaining / richest valid winner should be selected at game end | Changed find_winner() from min(net_worth) to max(net_worth). |
+
+Commit history for these fixes:
+
+- Error #1: 84fa711
+- Error #2: 436456d
+- Error #3: ece4637
+- Error #4: d6963b3
+- Error #5: 11f31ea
+- Error #6: db2b193
+- Error #7: 9fcff15
+
+Additional consolidation commits:
+
+- 436fbed - Modular white-box suite + report consolidation
+- 9a624cb - Ignore pytest/coverage artifacts
+
+## Phase 5 - Final Coverage Snapshot
+
+Command executed:
+
+pytest --cov=main --cov=moneypoly --cov-branch --cov-report=term-missing --cov-fail-under=100 test
+
+Final result:
+
+- 189 tests passed
+- 100.00% line coverage
+- 100.00% branch coverage
+
+Module coverage:
+
+| Module | Line | Branch |
+|--------|------|--------|
+| main.py | 100% | 100% |
+| moneypoly/bank.py | 100% | 100% |
+| moneypoly/board.py | 100% | 100% |
+| moneypoly/cards.py | 100% | 100% |
+| moneypoly/config.py | 100% | 100% |
+| moneypoly/dice.py | 100% | 100% |
+| moneypoly/game.py | 100% | 100% |
+| moneypoly/player.py | 100% | 100% |
+| moneypoly/property.py | 100% | 100% |
+| moneypoly/ui.py | 100% | 100% |
