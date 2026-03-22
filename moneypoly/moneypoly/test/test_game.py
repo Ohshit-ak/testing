@@ -511,14 +511,14 @@ class TestGameAuctionJailCards:
         game_two_players._apply_card(p, {"description": "d", "action": "move_to", "value": 1})
         assert called["value"] is False
 
-    def test_apply_card_birthday_skips_insolvent_players(self, game_two_players):
-        # Verifies birthday loop branch skips players below payment threshold.
+    def test_apply_card_birthday_collects_partial_from_insolvent_players(self, game_two_players):
+        # Verifies birthday loop branch collects whatever insolvent players can pay.
         p = game_two_players.players[0]
         other = game_two_players.players[1]
         other.balance = 5
         before = p.balance
         game_two_players._apply_card(p, {"description": "d", "action": "birthday", "value": 10})
-        assert p.balance == before
+        assert p.balance == before + 5
 
     def test_apply_card_birthday_collects_from_solvent_players(self, game_two_players):
         # Verifies birthday loop branch transfers money from solvent players.
@@ -529,14 +529,14 @@ class TestGameAuctionJailCards:
         game_two_players._apply_card(p, {"description": "d", "action": "birthday", "value": 10})
         assert p.balance == before + 10
 
-    def test_apply_card_collect_from_all_skips_insolvent_players(self, game_two_players):
-        # Verifies collect-from-all branch skips players below threshold.
+    def test_apply_card_collect_from_all_collects_partial_from_insolvent_players(self, game_two_players):
+        # Verifies collect-from-all branch collects whatever insolvent players can pay.
         p = game_two_players.players[0]
         other = game_two_players.players[1]
         other.balance = 5
         before = p.balance
         game_two_players._apply_card(p, {"description": "d", "action": "collect_from_all", "value": 10})
-        assert p.balance == before
+        assert p.balance == before + 5
 
     def test_apply_card_collect_from_all_collects_when_solvent(self, game_two_players):
         # Verifies collect-from-all branch transfers funds from solvent players.

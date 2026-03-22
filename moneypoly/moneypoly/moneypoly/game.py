@@ -332,15 +332,17 @@ class Game:  # pylint: disable=too-many-instance-attributes
 
         elif action == "birthday":
             for other in self.players:
-                if other != player and other.balance >= value:
-                    other.deduct_money(value)
-                    player.add_money(value)
+                if other != player:
+                    amount = min(value, other.balance)
+                    other.deduct_money(amount)
+                    player.add_money(amount)
 
         elif action == "collect_from_all":
             for other in self.players:
-                if other != player and other.balance >= value:
-                    other.deduct_money(value)
-                    player.add_money(value)
+                if other != player:
+                    amount = min(value, other.balance)
+                    other.deduct_money(amount)
+                    player.add_money(amount)
 
 
     def _check_bankruptcy(self, player):

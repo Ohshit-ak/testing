@@ -325,3 +325,22 @@ The move-to card salary check missed edge wrap semantics around GO in specific b
 Expanded the condition used to detect pass-Go when resolving move-to card destinations.
 
 ---
+
+## Commit 4 — Collect partial payments for all-player card effects
+
+| Field          | Detail                                       |
+|---------------|-----------------------------------------------|
+| File           | `moneypoly/moneypoly/moneypoly/game.py`      |
+| Method         | `_apply_card()`                               |
+| Type           | Bug Fix                                       |
+| Severity       | Medium                                        |
+| Pylint delta   | no change                                     |
+| Lines changed  | 8                                             |
+
+**Root cause / motivation:**
+Card collection logic skipped players who could not pay full value, creating inconsistent money flow.
+
+**What was changed:**
+Switched both collection branches to transfer `min(value, other.balance)` from every other player.
+
+---
