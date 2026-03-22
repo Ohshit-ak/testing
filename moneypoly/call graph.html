@@ -23,7 +23,9 @@ canvas{display:block}
 #tt b{display:block;font-weight:500;font-size:12.5px;margin-bottom:2px}
 #tt .mod{font-size:10.5px;color:var(--color-text-tertiary)}
 #tt .bug{font-size:11px;color:#A32D2D;margin-top:5px;font-weight:500}
+#tt .bugFixed{font-size:11px;color:#0F6E56;margin-top:5px;font-weight:500}
 #tt .dead{font-size:11px;color:#888;margin-top:3px}
+#tt .testStatus{font-size:11px;color:#534AB7;margin-top:8px;font-weight:500;padding-top:8px;border-top:1px solid var(--color-border-secondary)}
 </style>
 <div id="top">
   <span style="font-size:11px;color:var(--color-text-tertiary)">Show modules:</span>
@@ -74,34 +76,34 @@ const NODES=[
   // game top
   {id:'g_init',     lbl:'Game.__init__()',         sub:'create all objects',  mod:'game', x:220, y:140},
   {id:'run',        lbl:'run()',                   sub:'main game loop',      mod:'game', x:460, y:140},
-  {id:'find_win',   lbl:'find_winner()',           sub:'returns winner',      mod:'game', x:700, y:140, bug:'uses min() — picks LOSER not winner'},
+  {id:'find_win',   lbl:'find_winner()',           sub:'returns winner',      mod:'game', x:700, y:140, bugFixed:'Bug #7: Now uses max() — picks winner by net_worth'},
 
   // turn layer
   {id:'play_turn',  lbl:'play_turn()',             sub:'dispatch one turn',   mod:'game', x:340, y:240},
   {id:'adv_turn',   lbl:'advance_turn()',          sub:'rotate player index', mod:'game', x:100, y:240},
   {id:'cur_player', lbl:'current_player()',        sub:'players[index]',      mod:'game', x:600, y:240},
-  {id:'dice_roll',  lbl:'dice.roll()',             sub:'randint(1,5)×2',      mod:'cards',x:840, y:240, bug:'should be randint(1,6) — max total 10 not 12'},
+  {id:'dice_roll',  lbl:'dice.roll()',             sub:'randint(1,6)×2 ✓',    mod:'cards',x:840, y:240, bugFixed:'Bug #1: FIXED — now uses randint(1,6) for proper 2-12 range'},
   {id:'dice_dbl',   lbl:'dice.is_doubles()',       sub:'die1==die2',          mod:'cards',x:1010,y:240},
 
   // branch layer
-  {id:'jail_turn',  lbl:'_handle_jail_turn()',     sub:'3 exit paths',        mod:'game', x:120, y:350},
+  {id:'jail_turn',  lbl:'_handle_jail_turn()',     sub:'3 exit paths ✓',      mod:'game', x:120, y:350, bugFixed:'Bug #6: FIXED — fine now deducted from player'},
   {id:'move_res',   lbl:'_move_and_resolve()',     sub:'tile-type dispatch',  mod:'game', x:380, y:350},
   {id:'chk_bank',   lbl:'_check_bankruptcy()',     sub:'eliminate if bal≤0',  mod:'game', x:680, y:350},
   {id:'p_bankrupt', lbl:'player.is_bankrupt()',    sub:'balance <= 0',        mod:'player',x:900,y:350},
 
   // tile handler layer
-  {id:'p_move',     lbl:'player.move()',           sub:'pos=(p+n)%40',        mod:'player',x:80, y:460},
+  {id:'p_move',     lbl:'player.move()',           sub:'pass-GO logic ✓',     mod:'player',x:80, y:460, bugFixed:'Bug #2: FIXED — correctly awards GO salary on wrap-around'},
   {id:'p_jail',     lbl:'player.go_to_jail()',     sub:'pos=10, in_jail=T',   mod:'player',x:240,y:460},
   {id:'hnd_prop',   lbl:'_handle_property_tile()',sub:'buy / auction / rent', mod:'game', x:430, y:460},
-  {id:'apply_card', lbl:'_apply_card()',           sub:'7 action types',      mod:'game', x:660, y:460},
+  {id:'apply_card', lbl:'_apply_card()',           sub:'extracted helpers ✓', mod:'game', x:660, y:460, bugFixed:'Bug #3,#4: FIXED — partial payments now collected; pass-GO logic corrected'},
   {id:'deck_draw',  lbl:'deck.draw()',             sub:'sequential cycle',    mod:'cards',x:860, y:460},
   {id:'ui_confirm', lbl:'ui.confirm()',            sub:'input=="y"',          mod:'ui',   x:1020,y:460},
 
   // transaction layer
   {id:'buy',        lbl:'buy_property()',          sub:'deduct + assign',     mod:'game', x:80,  y:575},
   {id:'auction',    lbl:'auction_property()',      sub:'single-pass bidding', mod:'game', x:270, y:575},
-  {id:'pay_rent',   lbl:'pay_rent()',              sub:'deduct renter',       mod:'game', x:460, y:575, bug:'owner.add_money() never called — rent disappears'},
-  {id:'trade',      lbl:'trade()',                 sub:'swap prop + cash',    mod:'game', x:640, y:575, bug:'seller.add_money() never called — cash lost'},
+  {id:'pay_rent',   lbl:'pay_rent()',              sub:'credits owner ✓',     mod:'game', x:460, y:575, bugFixed:'Bug #5: FIXED — now credits owner after deducting tenant'},
+  {id:'trade',      lbl:'trade()',                 sub:'swap prop + cash ✓',  mod:'game', x:640, y:575, bugFixed:'Bug #2: FIXED — seller now credited cash'},
   {id:'mortgage',   lbl:'mortgage_property()',     sub:'release equity',      mod:'game', x:820, y:575},
   {id:'unmortgage', lbl:'unmortgage_property()',   sub:'redeem at 110%',      mod:'game', x:1010,y:575},
 
@@ -110,33 +112,33 @@ const NODES=[
   {id:'p_deduct',   lbl:'player.deduct_money()',   sub:'allows neg balance',  mod:'player',x:270,y:680},
   {id:'p_add_prop', lbl:'player.add_property()',   sub:'append to list',      mod:'player',x:460,y:680},
   {id:'p_rem_prop', lbl:'player.remove_property()',sub:'remove from list',    mod:'player',x:660,y:680},
-  {id:'p_networth', lbl:'player.net_worth()',      sub:'returns balance only',mod:'player',x:860,y:680, bug:'ignores property values entirely'},
+  {id:'p_networth', lbl:'player.net_worth()',      sub:'includes properties ✓',mod:'player',x:860,y:680, bugFixed:'Bug #5: FIXED — now includes unmortgaged property values'},
 
   // leaf: board / bank / cards
   {id:'b_tile',     lbl:'board.get_tile_type()',   sub:'special/prop/blank',  mod:'board', x:80, y:780},
   {id:'b_prop_at',  lbl:'board.get_property_at()',sub:'linear scan',          mod:'board', x:280,y:780},
   {id:'bk_collect', lbl:'bank.collect()',          sub:'funds += n (neg ok)', mod:'bank',  x:480,y:780},
   {id:'bk_payout',  lbl:'bank.pay_out()',          sub:'raises if insufficient',mod:'bank',x:660,y:780},
-  {id:'bk_loan',    lbl:'bank.give_loan()',        sub:'credits player',      mod:'bank',  x:850,y:780, bug:'bank._funds never reduced — creates money'},
+  {id:'bk_loan',    lbl:'bank.give_loan()',        sub:'deducts reserves ✓',  mod:'bank',  x:850,y:780, bugFixed:'Bug #8: FIXED — reserves now deducted on loan payout'},
 
   // leaf: property
-  {id:'pr_rent',    lbl:'prop.get_rent()',         sub:'base or ×2',          mod:'property',x:200,y:880, bug:'all_owned_by uses any() not all() — doubles rent too early'},
+  {id:'pr_rent',    lbl:'prop.get_rent()',         sub:'base or ×2 ✓',        mod:'property',x:200,y:880, bugFixed:'Bug #6: FIXED — group ownership check now uses all()'},
   {id:'pr_mort',    lbl:'prop.mortgage()',         sub:'returns price // 2',  mod:'property',x:430,y:880},
   {id:'pr_unmort',  lbl:'prop.unmortgage()',       sub:'returns int(mv×1.1)', mod:'property',x:650,y:880},
-  {id:'grp_owned',  lbl:'group.all_owned_by()',    sub:'any() BUG→ all()',     mod:'property',x:200,y:970, bug:'any() means 1 prop triggers full-group rent'},
+  {id:'grp_owned',  lbl:'group.all_owned_by()',    sub:'all() ✓',             mod:'property',x:200,y:970, bugFixed:'Bug #6: FIXED — now correctly uses all() for full-group check'},
 
   // ui leaves
   {id:'ui_banner',  lbl:'ui.print_banner()',       sub:'section header',      mod:'ui',   x:1020,y:350},
   {id:'ui_stand',   lbl:'ui.print_standings()',    sub:'sorted by net_worth', mod:'ui',   x:1020,y:575},
   {id:'ui_board',   lbl:'ui.print_board_ownership()',sub:'property register', mod:'ui',   x:1020,y:680},
   {id:'ui_safe',    lbl:'ui.safe_int_input()',     sub:'int(input()) or dflt',mod:'ui',   x:1020,y:780},
+  {id:'ui_pcard',   lbl:'ui.print_player_card()',  sub:'conditional output ✓',mod:'ui',    x:1020,y:880, bugFixed:'Bug #11: FIXED — jail line now prints conditionally'},
 
   // dead code
   {id:'imenu',      lbl:'interactive_menu()',      sub:'NOT wired into run()',mod:'game',  x:200,y:1070, dead:true},
   {id:'m_mort',     lbl:'_menu_mortgage()',        sub:'',                    mod:'game',  x:400,y:1070, dead:true},
   {id:'m_unmort',   lbl:'_menu_unmortgage()',      sub:'',                    mod:'game',  x:600,y:1070, dead:true},
   {id:'m_trade',    lbl:'_menu_trade()',           sub:'',                    mod:'game',  x:800,y:1070, dead:true},
-  {id:'ui_pcard',   lbl:'ui.print_player_card()',  sub:'never called',        mod:'ui',    x:1020,y:880, dead:true},
 ];
 
 const EDGES=[
@@ -189,6 +191,7 @@ canvas.width=CW; canvas.height=CH;
 canvas.style.width=CW+'px'; canvas.style.height=CH+'px';
 
 function nodeColor(n){
+  if(n.bugFixed) return '#0F6E56';  // green for fixed
   if(n.bug) return C.bug;
   return C[n.mod]||'#888';
 }
@@ -310,8 +313,18 @@ function draw(){
     if(n.dead){ctx2.setLineDash([5,3]); ctx2.strokeStyle=rgba(col,0.35);}
     else{ctx2.setLineDash([]); ctx2.strokeStyle=rgba(col, isHov?1:0.6);}
     ctx2.stroke();
-    ctx2.setLineDash([]);
-    ctx2.shadowBlur=0;
+    // fixed indicator dot
+    if(n.bugFixed){
+      ctx2.beginPath();
+      ctx2.arc(x+w-5, y+5, 5, 0, Math.PI*2);
+      ctx2.fillStyle='#0F6E56';
+      ctx2.fill();
+      // checkmark
+      ctx2.fillStyle='#fff';
+      ctx2.font='bold 8px system-ui';
+      ctx2.textAlign='center'; ctx2.textBaseline='middle';
+      ctx2.fillText('✓', x+w-5, y+5);
+    } else ctx2.shadowBlur=0;
 
     // bug dot
     if(n.bug){
@@ -352,7 +365,8 @@ canvas.addEventListener('mousemove',e=>{
   hov=hit(mx,my);
   const tt=document.getElementById('tt');
   if(hov){
-    document.getElementById('tt-n').textContent=hov.lbl;
+    const ne=document.getElementById('tt-n');
+    ne.textContent=hov.lbl;
     document.getElementById('tt-m').textContent=hov.mod+'.py'+(hov.sub?' — '+hov.sub:'');
     const be=document.getElementById('tt-b');
     be.textContent=hov.bug?'BUG: '+hov.bug:'';
