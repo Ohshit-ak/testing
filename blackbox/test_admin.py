@@ -1,290 +1,447 @@
+"""
+QuickCart — Admin Section Tests
+Endpoints:
+  GET /api/v1/admin/users
+  GET /api/v1/admin/users/{user_id}
+  GET /api/v1/admin/carts
+  GET /api/v1/admin/orders
+  GET /api/v1/admin/products
+  GET /api/v1/admin/coupons
+  GET /api/v1/admin/tickets
+  GET /api/v1/admin/addresses
+
+Run:
+    pip install pytest requests
+    pytest test_admin.py -v
+"""
+
+import pytest
 import requests
 
-BASE_URL = "http://localhost:8080/api/v1"
-ROLL_NUMBER = "2024111004"  # Replace with your actual roll number
+BASE_URL    = "http://localhost:8080/api/v1"
+ROLL_NUMBER = "2024111004"   # ← replace with your actual roll number
 
-# Base headers for all requests (no X-User-ID needed for admin endpoints)
-ADMIN_HEADERS = {
-    "X-Roll-Number": ROLL_NUMBER
-}
+ADMIN_HEADERS = {"X-Roll-Number": ROLL_NUMBER}
 
-PASS = "\033[92mPASS\033[0m"
-FAIL = "\033[91mFAIL\033[0m"
+ADMIN_ENDPOINTS = [
+    "/admin/users",
+    "/admin/carts",
+    "/admin/orders",
+    "/admin/products",
+    "/admin/coupons",
+    "/admin/tickets",
+    "/admin/addresses",
+]
 
-def check(test_name, condition, actual=None):
-    if condition:
-        print(f"  [{PASS}] {test_name}")
-    else:
-        print(f"  [{FAIL}] {test_name} | Got: {actual}")
 
-def run_test(name, fn):
-    print(f"\n{'='*55}")
-    print(f" {name}")
-    print(f"{'='*55}")
-    fn()
+# ═════════════════════════════════════════════════════════════════
+# 1.  X-Roll-Number header validation  (all admin endpoints)
+# ═════════════════════════════════════════════════════════════════
 
-# ─────────────────────────────────────────────
-# MISSING / INVALID X-Roll-Number HEADER TESTS
-# ─────────────────────────────────────────────
-def test_missing_roll_number():
-    endpoints = [
-        "/admin/users",
-        "/admin/carts",
-        "/admin/orders",
-        "/admin/products",
-        "/admin/coupons",
-        "/admin/tickets",
-        "/admin/addresses",
-    ]
-    for ep in endpoints:
-        r = requests.get(f"{BASE_URL}{ep}")  # No headers at all
-        check(f"Missing X-Roll-Number on {ep} → 401", r.status_code == 401, r.status_code)
+class TestAdminHeaderValidation:
 
-def test_invalid_roll_number():
-    bad_headers = {"X-Roll-Number": "abc"}
-    endpoints = [
-        "/admin/users",
-        "/admin/carts",
-        "/admin/orders",
-        "/admin/products",
-        "/admin/coupons",
-        "/admin/tickets",
-        "/admin/addresses",
-    ]
-    for ep in endpoints:
-        r = requests.get(f"{BASE_URL}{ep}", headers=bad_headers)
-        check(f"Invalid X-Roll-Number on {ep} → 400", r.status_code == 400, r.status_code)
-
-# ─────────────────────────────────────────────
-# GET /admin/users
-# ─────────────────────────────────────────────
-def test_admin_users():
-    r = requests.get(f"{BASE_URL}/admin/users", headers=ADMIN_HEADERS)
-    check("Status 200", r.status_code == 200, r.status_code)
-
-    data = r.json()
-    check("Response is a list", isinstance(data, list), type(data))
-
-    if data:
-        user = data[0]
-        check("Each user has 'user_id'", "user_id" in user, user)
-        check("Each user has 'name'", "name" in user, user)
-        check("Each user has 'wallet_balance'", "wallet_balance" in user, user)
-        check("Each user has 'loyalty_points'", "loyalty_points" in user, user)
-
-# ─────────────────────────────────────────────
-# GET /admin/users/{user_id}
-# ─────────────────────────────────────────────
-def test_admin_user_by_id():
-    # First get all users to find a valid ID
-    r_all = requests.get(f"{BASE_URL}/admin/users", headers=ADMIN_HEADERS)
-    users = r_all.json()
-
-    if users:
-        valid_id = users[0]["user_id"]
-        r = requests.get(f"{BASE_URL}/admin/users/{valid_id}", headers=ADMIN_HEADERS)
-        check(f"Status 200 for user {valid_id}", r.status_code == 200, r.status_code)
-
-        user = r.json()
-        check("Has correct 'user_id'", user.get("user_id") == valid_id, user.get("user_id"))
-        check("Has 'name'", "name" in user, user)
-        check("Has 'wallet_balance'", "wallet_balance" in user, user)
-        check("Has 'loyalty_points'", "loyalty_points" in user, user)
-    else:
-        print("  [SKIP] No users found to test")
-
-    # Test non-existent user
-    r404 = requests.get(f"{BASE_URL}/admin/users/999999", headers=ADMIN_HEADERS)
-    check("Non-existent user → 404", r404.status_code == 404, r404.status_code)
-
-# ─────────────────────────────────────────────
-# GET /admin/carts
-# ─────────────────────────────────────────────
-def test_admin_carts():
-    r = requests.get(f"{BASE_URL}/admin/carts", headers=ADMIN_HEADERS)
-    check("Status 200", r.status_code == 200, r.status_code)
-
-    data = r.json()
-    check("Response is a list", isinstance(data, list), type(data))
-
-    if data:
-        cart = data[0]
-        check("Cart has 'user_id'", "user_id" in cart, cart)
-        check("Cart has 'items'", "items" in cart, cart)
-        check("Cart has 'total'", "total" in cart, cart)
-
-        if cart["items"]:
-            item = cart["items"][0]
-            check("Item has 'product_id'", "product_id" in item, item)
-            check("Item has 'quantity'", "quantity" in item, item)
-            check("Item has 'subtotal'", "subtotal" in item, item)
-
-            # Verify subtotal = quantity * unit_price (if unit_price present)
-            if "unit_price" in item:
-                expected = round(item["quantity"] * item["unit_price"], 2)
-                actual = round(item["subtotal"], 2)
-                check(
-                    f"Subtotal = qty × unit_price ({expected})",
-                    abs(expected - actual) < 0.01,
-                    actual
-                )
-
-# ─────────────────────────────────────────────
-# GET /admin/orders
-# ─────────────────────────────────────────────
-def test_admin_orders():
-    r = requests.get(f"{BASE_URL}/admin/orders", headers=ADMIN_HEADERS)
-    check("Status 200", r.status_code == 200, r.status_code)
-
-    data = r.json()
-    check("Response is a list", isinstance(data, list), type(data))
-
-    if data:
-        order = data[0]
-        check("Order has 'order_id'", "order_id" in order, order)
-        check("Order has 'user_id'", "user_id" in order, order)
-        check("Order has 'total_amount'", "total_amount" in order, order)
-        check("Order has 'gst_amount'", "gst_amount" in order, order)
-        check("Order has 'payment_status'", "payment_status" in order, order)
-        check("Order has 'payment_method'", "payment_method" in order, order)
-        check("Order has 'order_status'", "order_status" in order, order)
-        valid_payement_methods = {"COD", "CARD", "WALLET", "UPI"}
-        check(
-            "payment_method is valid",
-            order["payment_method"] in valid_payement_methods,
-            order["payment_method"]
-        )
-        valid_payment_statuses = {"PENDING", "PAID", "FAILED"}
-        check(
-            "payment_status is valid",
-            order["payment_status"] in valid_payment_statuses,
-            order["payment_status"]
+    @pytest.mark.parametrize("endpoint", ADMIN_ENDPOINTS)
+    def test_missing_roll_number_returns_401(self, endpoint):
+        res = requests.get(f"{BASE_URL}{endpoint}")   # no headers at all
+        assert res.status_code == 401, (
+            f"Expected 401 for missing X-Roll-Number on {endpoint}, got {res.status_code}"
         )
 
-        valid_order_statuses = {"PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"}
-        check(
-            "order_status is valid",
-            order["order_status"] in valid_order_statuses,
-            order["order_status"]
+    @pytest.mark.parametrize("endpoint", ADMIN_ENDPOINTS)
+    def test_invalid_roll_number_letters_returns_400(self, endpoint):
+        res = requests.get(f"{BASE_URL}{endpoint}", headers={"X-Roll-Number": "abc"})
+        assert res.status_code == 400, (
+            f"Expected 400 for non-integer X-Roll-Number on {endpoint}, got {res.status_code}"
         )
 
-# ─────────────────────────────────────────────
-# GET /admin/products
-# ─────────────────────────────────────────────
-def test_admin_products():
-    r = requests.get(f"{BASE_URL}/admin/products", headers=ADMIN_HEADERS)
-    check("Status 200", r.status_code == 200, r.status_code)
-
-    data = r.json()
-    check("Response is a list", isinstance(data, list), type(data))
-
-    if data:
-        product = data[0]
-        check("Product has 'product_id'", "product_id" in product, product)
-        check("Product has 'name'", "name" in product, product)
-        check("Product has 'price'", "price" in product, product)
-        check("Product has 'is_active'", "is_active" in product, product)
-
-        # Admin endpoint should include inactive products too
-        has_inactive = any(not p.get("is_active", True) for p in data)
-        print(f"  [INFO] Inactive products present: {has_inactive}")
-
-# ─────────────────────────────────────────────
-# GET /admin/coupons
-# ─────────────────────────────────────────────
-def test_admin_coupons():
-    r = requests.get(f"{BASE_URL}/admin/coupons", headers=ADMIN_HEADERS)
-    check("Status 200", r.status_code == 200, r.status_code)
-
-    data = r.json()
-    check("Response is a list", isinstance(data, list), type(data))
-
-    if data:
-        coupon = data[0]
-        check("Coupon has 'coupon_code'", "coupon_code" in coupon, coupon)
-        check("Coupon has 'discount_type'", "discount_type" in coupon, coupon)
-        check("Coupon has 'discount_value'", "discount_value" in coupon, coupon)
-
-        valid_types = {"PERCENT", "FIXED"}
-        check(
-            "discount_type is PERCENT or FIXED",
-            coupon["discount_type"] in valid_types,
-            coupon["discount_type"]
+    @pytest.mark.parametrize("endpoint", ADMIN_ENDPOINTS)
+    def test_invalid_roll_number_symbols_returns_400(self, endpoint):
+        res = requests.get(f"{BASE_URL}{endpoint}", headers={"X-Roll-Number": "##!@"})
+        assert res.status_code == 400, (
+            f"Expected 400 for symbol X-Roll-Number on {endpoint}, got {res.status_code}"
         )
 
-# ─────────────────────────────────────────────
-# GET /admin/tickets
-# ─────────────────────────────────────────────
-def test_admin_tickets():
-    r = requests.get(f"{BASE_URL}/admin/tickets", headers=ADMIN_HEADERS)
-    check("Status 200", r.status_code == 200, r.status_code)
 
-    data = r.json()
-    check("Response is a list", isinstance(data, list), type(data))
+# ═════════════════════════════════════════════════════════════════
+# 2.  GET /admin/users
+# ═════════════════════════════════════════════════════════════════
 
-    if data:
-        ticket = data[0]
-        check("Ticket has 'ticket_id'", "ticket_id" in ticket, ticket)
-        check("Ticket has 'user_id'", "user_id" in ticket, ticket)
-        check("Ticket has 'subject'", "subject" in ticket, ticket)
-        check("Ticket has 'message'", "message" in ticket, ticket)
-        check("Ticket has 'status'", "status" in ticket, ticket)
+class TestAdminUsers:
 
-        valid_statuses = {"OPEN", "IN_PROGRESS", "CLOSED"}
-        check(
-            "status is valid",
-            ticket["status"] in valid_statuses,
-            ticket["status"]
+    def test_status_200(self):
+        res = requests.get(f"{BASE_URL}/admin/users", headers=ADMIN_HEADERS)
+        assert res.status_code == 200
+
+    def test_response_is_list(self):
+        res = requests.get(f"{BASE_URL}/admin/users", headers=ADMIN_HEADERS)
+        assert isinstance(res.json(), list)
+
+    def test_user_fields_present(self):
+        res = requests.get(f"{BASE_URL}/admin/users", headers=ADMIN_HEADERS)
+        users = res.json()
+        if not users:
+            pytest.skip("No users in DB")
+        user = users[0]
+        for field in ("user_id", "name", "wallet_balance", "loyalty_points"):
+            assert field in user, f"Field '{field}' missing from user object"
+
+    def test_wallet_balance_is_numeric(self):
+        users = requests.get(f"{BASE_URL}/admin/users", headers=ADMIN_HEADERS).json()
+        if not users:
+            pytest.skip("No users in DB")
+        assert isinstance(users[0]["wallet_balance"], (int, float))
+
+    def test_loyalty_points_is_integer(self):
+        users = requests.get(f"{BASE_URL}/admin/users", headers=ADMIN_HEADERS).json()
+        if not users:
+            pytest.skip("No users in DB")
+        assert isinstance(users[0]["loyalty_points"], int)
+
+
+# ═════════════════════════════════════════════════════════════════
+# 3.  GET /admin/users/{user_id}
+# ═════════════════════════════════════════════════════════════════
+
+class TestAdminUserById:
+
+    @pytest.fixture(scope="class")
+    def first_user_id(self):
+        users = requests.get(f"{BASE_URL}/admin/users", headers=ADMIN_HEADERS).json()
+        assert users, "No users in DB — seed first"
+        return users[0]["user_id"]
+
+    def test_valid_user_returns_200(self, first_user_id):
+        res = requests.get(f"{BASE_URL}/admin/users/{first_user_id}", headers=ADMIN_HEADERS)
+        assert res.status_code == 200
+
+    def test_correct_user_id_returned(self, first_user_id):
+        res = requests.get(f"{BASE_URL}/admin/users/{first_user_id}", headers=ADMIN_HEADERS)
+        assert res.json().get("user_id") == first_user_id
+
+    def test_user_fields_present(self, first_user_id):
+        res = requests.get(f"{BASE_URL}/admin/users/{first_user_id}", headers=ADMIN_HEADERS)
+        user = res.json()
+        for field in ("user_id", "name", "wallet_balance", "loyalty_points"):
+            assert field in user, f"Field '{field}' missing"
+
+    def test_nonexistent_user_returns_404(self):
+        res = requests.get(f"{BASE_URL}/admin/users/999999", headers=ADMIN_HEADERS)
+        assert res.status_code == 404
+
+
+# ═════════════════════════════════════════════════════════════════
+# 4.  GET /admin/carts
+# ═════════════════════════════════════════════════════════════════
+
+class TestAdminCarts:
+
+    def test_status_200(self):
+        res = requests.get(f"{BASE_URL}/admin/carts", headers=ADMIN_HEADERS)
+        assert res.status_code == 200
+
+    def test_response_is_list(self):
+        res = requests.get(f"{BASE_URL}/admin/carts", headers=ADMIN_HEADERS)
+        assert isinstance(res.json(), list)
+
+    def test_cart_fields_present(self):
+        carts = requests.get(f"{BASE_URL}/admin/carts", headers=ADMIN_HEADERS).json()
+        if not carts:
+            pytest.skip("No carts in DB")
+        cart = carts[0]
+        for field in ("user_id", "items", "total"):
+            assert field in cart, f"Field '{field}' missing from cart"
+
+    def test_item_fields_present(self):
+        carts = requests.get(f"{BASE_URL}/admin/carts", headers=ADMIN_HEADERS).json()
+        cart_with_items = next((c for c in carts if c.get("items")), None)
+        if cart_with_items is None:
+            pytest.skip("No cart with items found")
+        item = cart_with_items["items"][0]
+        for field in ("product_id", "quantity", "subtotal"):
+            assert field in item, f"Field '{field}' missing from cart item"
+
+    def test_subtotal_equals_qty_times_unit_price(self):
+        carts = requests.get(f"{BASE_URL}/admin/carts", headers=ADMIN_HEADERS).json()
+        cart_with_items = next((c for c in carts if c.get("items")), None)
+        if cart_with_items is None:
+            pytest.skip("No cart with items found")
+        for item in cart_with_items["items"]:
+            if "unit_price" not in item:
+                continue
+            expected = round(item["quantity"] * item["unit_price"], 2)
+            actual   = round(item["subtotal"], 2)
+            assert abs(expected - actual) < 0.01, (
+                f"Subtotal mismatch for product {item['product_id']}: "
+                f"expected {expected}, got {actual}"
+            )
+
+    def test_cart_total_equals_sum_of_subtotals(self):
+        """Cart total must equal the sum of ALL item subtotals."""
+        carts = requests.get(f"{BASE_URL}/admin/carts", headers=ADMIN_HEADERS).json()
+        cart_with_items = next((c for c in carts if c.get("items")), None)
+        if cart_with_items is None:
+            pytest.skip("No cart with items found")
+        expected_total = round(sum(i["subtotal"] for i in cart_with_items["items"]), 2)
+        actual_total   = round(cart_with_items["total"], 2)
+        assert abs(expected_total - actual_total) < 0.01, (
+            f"Cart total mismatch: expected {expected_total}, got {actual_total}"
         )
 
-# ─────────────────────────────────────────────
-# GET /admin/addresses
-# ─────────────────────────────────────────────
-def test_admin_addresses():
-    r = requests.get(f"{BASE_URL}/admin/addresses", headers=ADMIN_HEADERS)
-    check("Status 200", r.status_code == 200, r.status_code)
 
-    data = r.json()
-    check("Response is a list", isinstance(data, list), type(data))
+# ═════════════════════════════════════════════════════════════════
+# 5.  GET /admin/orders
+# ═════════════════════════════════════════════════════════════════
 
-    if data:
-        address = data[0]
-        check("Address has 'address_id'", "address_id" in address, address)
-        check("Address has 'user_id'", "user_id" in address, address)
-        check("Address has 'label'", "label" in address, address)
-        check("Address has 'street'", "street" in address, address)
-        check("Address has 'city'", "city" in address, address)
-        check("Address has 'pincode'", "pincode" in address, address)
-        check("Address has 'is_default'", "is_default" in address, address)
+class TestAdminOrders:
 
-        valid_labels = {"HOME", "OFFICE", "OTHER"}
-        check(
-            "label is HOME / OFFICE / OTHER",
-            address["label"] in valid_labels,
-            address["label"]
-        )
+    def test_status_200(self):
+        res = requests.get(f"{BASE_URL}/admin/orders", headers=ADMIN_HEADERS)
+        assert res.status_code == 200
 
-        check(
-            "pincode is 6 digits",
-            len(str(address["pincode"])) == 6,
-            address["pincode"]
-        )
+    def test_response_is_list(self):
+        res = requests.get(f"{BASE_URL}/admin/orders", headers=ADMIN_HEADERS)
+        assert isinstance(res.json(), list)
 
-# ─────────────────────────────────────────────
-# MAIN
-# ─────────────────────────────────────────────
-if __name__ == "__main__":
-    run_test("Missing X-Roll-Number Header (All Admin Endpoints)", test_missing_roll_number)
-    run_test("Invalid X-Roll-Number Header (All Admin Endpoints)", test_invalid_roll_number)
-    run_test("GET /admin/users", test_admin_users)
-    run_test("GET /admin/users/{user_id}", test_admin_user_by_id)
-    run_test("GET /admin/carts", test_admin_carts)
-    run_test("GET /admin/orders", test_admin_orders)
-    run_test("GET /admin/products", test_admin_products)
-    run_test("GET /admin/coupons", test_admin_coupons)
-    run_test("GET /admin/tickets", test_admin_tickets)
-    run_test("GET /admin/addresses", test_admin_addresses)
+    def test_order_fields_present(self):
+        orders = requests.get(f"{BASE_URL}/admin/orders", headers=ADMIN_HEADERS).json()
+        if not orders:
+            pytest.skip("No orders in DB")
+        order = orders[0]
+        for field in ("order_id", "user_id", "total_amount", "gst_amount",
+                      "payment_status", "payment_method", "order_status"):
+            assert field in order, f"Field '{field}' missing from order"
 
-    print(f"\n{'='*55}")
-    print(" All admin tests complete.")
-    print(f"{'='*55}\n")
+    def test_payment_method_is_valid(self):
+        orders = requests.get(f"{BASE_URL}/admin/orders", headers=ADMIN_HEADERS).json()
+        if not orders:
+            pytest.skip("No orders in DB")
+        valid = {"COD", "CARD", "WALLET", "UPI"}
+        for order in orders:
+            assert order["payment_method"] in valid, (
+                f"Invalid payment_method '{order['payment_method']}' on order {order['order_id']}"
+            )
+
+    def test_payment_status_is_valid(self):
+        orders = requests.get(f"{BASE_URL}/admin/orders", headers=ADMIN_HEADERS).json()
+        if not orders:
+            pytest.skip("No orders in DB")
+        valid = {"PENDING", "PAID", "FAILED"}
+        for order in orders:
+            assert order["payment_status"] in valid, (
+                f"Invalid payment_status '{order['payment_status']}' on order {order['order_id']}"
+            )
+
+    def test_order_status_is_valid(self):
+        orders = requests.get(f"{BASE_URL}/admin/orders", headers=ADMIN_HEADERS).json()
+        if not orders:
+            pytest.skip("No orders in DB")
+        valid = {"PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"}
+        for order in orders:
+            assert order["order_status"] in valid, (
+                f"Invalid order_status '{order['order_status']}' on order {order['order_id']}"
+            )
+
+    def test_total_amount_is_positive(self):
+        orders = requests.get(f"{BASE_URL}/admin/orders", headers=ADMIN_HEADERS).json()
+        if not orders:
+            pytest.skip("No orders in DB")
+        for order in orders:
+            assert order["total_amount"] > 0, (
+                f"Order {order['order_id']} has non-positive total_amount"
+            )
+
+    def test_gst_amount_is_non_negative(self):
+        orders = requests.get(f"{BASE_URL}/admin/orders", headers=ADMIN_HEADERS).json()
+        if not orders:
+            pytest.skip("No orders in DB")
+        for order in orders:
+            assert order["gst_amount"] >= 0, (
+                f"Order {order['order_id']} has negative gst_amount"
+            )
+
+
+# ═════════════════════════════════════════════════════════════════
+# 6.  GET /admin/products
+# ═════════════════════════════════════════════════════════════════
+
+class TestAdminProducts:
+
+    def test_status_200(self):
+        res = requests.get(f"{BASE_URL}/admin/products", headers=ADMIN_HEADERS)
+        assert res.status_code == 200
+
+    def test_response_is_list(self):
+        res = requests.get(f"{BASE_URL}/admin/products", headers=ADMIN_HEADERS)
+        assert isinstance(res.json(), list)
+
+    def test_product_fields_present(self):
+        products = requests.get(f"{BASE_URL}/admin/products", headers=ADMIN_HEADERS).json()
+        if not products:
+            pytest.skip("No products in DB")
+        product = products[0]
+        for field in ("product_id", "name", "price", "is_active"):
+            assert field in product, f"Field '{field}' missing from product"
+
+    def test_includes_inactive_products(self):
+        """Admin endpoint must expose inactive products too."""
+        products = requests.get(f"{BASE_URL}/admin/products", headers=ADMIN_HEADERS).json()
+        has_inactive = any(not p.get("is_active", True) for p in products)
+        # This is informational — skip rather than fail if DB has none
+        if not has_inactive:
+            pytest.skip("No inactive products seeded — cannot verify inclusion")
+
+    def test_price_is_positive(self):
+        products = requests.get(f"{BASE_URL}/admin/products", headers=ADMIN_HEADERS).json()
+        if not products:
+            pytest.skip("No products in DB")
+        for p in products:
+            assert p["price"] > 0, f"Product {p['product_id']} has non-positive price"
+
+    def test_stock_field_is_non_negative(self):
+        products = requests.get(f"{BASE_URL}/admin/products", headers=ADMIN_HEADERS).json()
+        if not products:
+            pytest.skip("No products in DB")
+        for p in products:
+            if "stock" in p:
+                assert p["stock"] >= 0, f"Product {p['product_id']} has negative stock"
+
+
+# ═════════════════════════════════════════════════════════════════
+# 7.  GET /admin/coupons
+# ═════════════════════════════════════════════════════════════════
+
+class TestAdminCoupons:
+
+    def test_status_200(self):
+        res = requests.get(f"{BASE_URL}/admin/coupons", headers=ADMIN_HEADERS)
+        assert res.status_code == 200
+
+    def test_response_is_list(self):
+        res = requests.get(f"{BASE_URL}/admin/coupons", headers=ADMIN_HEADERS)
+        assert isinstance(res.json(), list)
+
+    def test_coupon_fields_present(self):
+        coupons = requests.get(f"{BASE_URL}/admin/coupons", headers=ADMIN_HEADERS).json()
+        if not coupons:
+            pytest.skip("No coupons in DB")
+        coupon = coupons[0]
+        for field in ("coupon_code", "discount_type", "discount_value"):
+            assert field in coupon, f"Field '{field}' missing from coupon"
+
+    def test_discount_type_is_valid(self):
+        coupons = requests.get(f"{BASE_URL}/admin/coupons", headers=ADMIN_HEADERS).json()
+        if not coupons:
+            pytest.skip("No coupons in DB")
+        valid = {"PERCENT", "FIXED"}
+        for c in coupons:
+            assert c["discount_type"] in valid, (
+                f"Invalid discount_type '{c['discount_type']}' on coupon {c['coupon_code']}"
+            )
+
+    def test_discount_value_is_positive(self):
+        coupons = requests.get(f"{BASE_URL}/admin/coupons", headers=ADMIN_HEADERS).json()
+        if not coupons:
+            pytest.skip("No coupons in DB")
+        for c in coupons:
+            assert c["discount_value"] > 0, (
+                f"Coupon {c['coupon_code']} has non-positive discount_value"
+            )
+
+    def test_includes_expired_coupons(self):
+        """Admin endpoint must expose expired coupons as well."""
+        coupons = requests.get(f"{BASE_URL}/admin/coupons", headers=ADMIN_HEADERS).json()
+        has_expired = any(c.get("is_expired") for c in coupons)
+        if not has_expired:
+            pytest.skip("No expired coupons seeded — cannot verify inclusion")
+
+
+# ═════════════════════════════════════════════════════════════════
+# 8.  GET /admin/tickets
+# ═════════════════════════════════════════════════════════════════
+
+class TestAdminTickets:
+
+    def test_status_200(self):
+        res = requests.get(f"{BASE_URL}/admin/tickets", headers=ADMIN_HEADERS)
+        assert res.status_code == 200
+
+    def test_response_is_list(self):
+        res = requests.get(f"{BASE_URL}/admin/tickets", headers=ADMIN_HEADERS)
+        assert isinstance(res.json(), list)
+
+    def test_ticket_fields_present(self):
+        tickets = requests.get(f"{BASE_URL}/admin/tickets", headers=ADMIN_HEADERS).json()
+        if not tickets:
+            pytest.skip("No tickets in DB")
+        ticket = tickets[0]
+        for field in ("ticket_id", "user_id", "subject", "message", "status"):
+            assert field in ticket, f"Field '{field}' missing from ticket"
+
+    def test_ticket_status_is_valid(self):
+        tickets = requests.get(f"{BASE_URL}/admin/tickets", headers=ADMIN_HEADERS).json()
+        if not tickets:
+            pytest.skip("No tickets in DB")
+        valid = {"OPEN", "IN_PROGRESS", "CLOSED"}
+        for t in tickets:
+            assert t["status"] in valid, (
+                f"Invalid status '{t['status']}' on ticket {t['ticket_id']}"
+            )
+
+    def test_message_is_non_empty(self):
+        tickets = requests.get(f"{BASE_URL}/admin/tickets", headers=ADMIN_HEADERS).json()
+        if not tickets:
+            pytest.skip("No tickets in DB")
+        for t in tickets:
+            assert t["message"], f"Ticket {t['ticket_id']} has empty message"
+
+
+# ═════════════════════════════════════════════════════════════════
+# 9.  GET /admin/addresses
+# ═════════════════════════════════════════════════════════════════
+
+class TestAdminAddresses:
+
+    def test_status_200(self):
+        res = requests.get(f"{BASE_URL}/admin/addresses", headers=ADMIN_HEADERS)
+        assert res.status_code == 200
+
+    def test_response_is_list(self):
+        res = requests.get(f"{BASE_URL}/admin/addresses", headers=ADMIN_HEADERS)
+        assert isinstance(res.json(), list)
+
+    def test_address_fields_present(self):
+        addresses = requests.get(f"{BASE_URL}/admin/addresses", headers=ADMIN_HEADERS).json()
+        if not addresses:
+            pytest.skip("No addresses in DB")
+        addr = addresses[0]
+        for field in ("address_id", "user_id", "label", "street", "city",
+                      "pincode", "is_default"):
+            assert field in addr, f"Field '{field}' missing from address"
+
+    def test_label_is_valid(self):
+        addresses = requests.get(f"{BASE_URL}/admin/addresses", headers=ADMIN_HEADERS).json()
+        if not addresses:
+            pytest.skip("No addresses in DB")
+        valid = {"HOME", "OFFICE", "OTHER"}
+        for addr in addresses:
+            assert addr["label"] in valid, (
+                f"Invalid label '{addr['label']}' on address {addr['address_id']}"
+            )
+
+    def test_pincode_is_6_digits(self):
+        addresses = requests.get(f"{BASE_URL}/admin/addresses", headers=ADMIN_HEADERS).json()
+        if not addresses:
+            pytest.skip("No addresses in DB")
+        for addr in addresses:
+            assert len(str(addr["pincode"])) == 6, (
+                f"Pincode '{addr['pincode']}' on address {addr['address_id']} is not 6 digits"
+            )
+
+    def test_is_default_is_boolean(self):
+        addresses = requests.get(f"{BASE_URL}/admin/addresses", headers=ADMIN_HEADERS).json()
+        if not addresses:
+            pytest.skip("No addresses in DB")
+        for addr in addresses:
+            assert isinstance(addr["is_default"], bool), (
+                f"is_default on address {addr['address_id']} is not a boolean"
+            )
