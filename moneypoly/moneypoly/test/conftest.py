@@ -1,4 +1,10 @@
+import os
+import sys
+
 import pytest
+
+# Make imports stable whether pytest is launched from project root or test/.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from moneypoly.bank import Bank
 from moneypoly.board import Board

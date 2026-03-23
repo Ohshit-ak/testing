@@ -2,6 +2,7 @@ import main
 import runpy
 import types
 import sys
+import os
 
 
 class TestMain:
@@ -59,5 +60,6 @@ class TestMain:
         }))
         monkeypatch.setitem(sys.modules, "moneypoly.game", fake_game_module)
         monkeypatch.setattr("builtins.input", lambda _p: "A,B")
-        module_globals = runpy.run_path("main.py", run_name="__main__")
+        script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "main.py"))
+        module_globals = runpy.run_path(script_path, run_name="__main__")
         assert module_globals["__name__"] == "__main__"
