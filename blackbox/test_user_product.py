@@ -6,15 +6,24 @@ Endpoints:
 
 Run:
     pip install pytest requests
-    pytest test_products.py -v
+    pytest test_user_product.py -v
 """
 
 import pytest
 import requests
+from header_validation import (
+    assert_missing_roll_number_returns_401,
+    assert_invalid_roll_number_returns_400,
+    assert_missing_user_id_returns_400,
+    assert_nonexistent_user_id_returns_400,
+    assert_invalid_user_id_returns_400,
+    assert_zero_user_id_returns_400,
+    assert_negative_user_id_returns_400,
+)
 
 BASE_URL = "http://localhost:8080/api/v1"
-ROLL     = "12345"   # ← replace with your roll number
-USER_ID  = "1"       # ← replace with a valid user ID
+ROLL     = "2024111004"   # ← replace with your roll number
+USER_ID  = "1"            # ← replace with a valid user ID
 
 
 # ── fixtures ──────────────────────────────────────────────────────
@@ -27,7 +36,7 @@ def valid_headers():
     }
 
 @pytest.fixture(scope="session")
-def admin_products(valid_headers):
+def admin_products():
     """
     Fetch the full product list (active + inactive) from the admin endpoint
     once per test session. All tests derive their test data from this.
@@ -68,6 +77,12 @@ class TestGetProducts:
         res = requests.get(f"{BASE_URL}/products", headers=valid_headers)
         assert isinstance(res.json(), list)
 
+    def test_each_product_has_required_fields(self, valid_headers):
+        res = requests.get(f"{BASE_URL}/products", headers=valid_headers)
+        for p in res.json():
+            for field in ("product_id", "name", "price"):
+                assert field in p, f"Product {p.get('product_id')} missing field '{field}'"
+
     # ── active / inactive visibility ─────────────────────────────
 
     def test_only_active_products_returned(self, valid_headers, admin_products):
@@ -87,18 +102,20 @@ class TestGetProducts:
     def test_inactive_product_not_in_listing(self, valid_headers, inactive_product):
         res = requests.get(f"{BASE_URL}/products", headers=valid_headers)
         returned_ids = {p["product_id"] for p in res.json()}
-        assert inactive_product["product_id"] not in returned_ids
+        assert inactive_product["product_id"] not in returned_ids, (
+            f"Inactive product {inactive_product['product_id']} appeared in listing (Bug #4)"
+        )
 
     # ── price accuracy ────────────────────────────────────────────
 
     def test_prices_match_admin_source(self, valid_headers, admin_products):
-        """Prices returned in the listing must exactly match the DB values."""
+        """Prices returned in the listing must exactly match the DB values (Bug #4)."""
         admin_price = {p["product_id"]: p["price"] for p in admin_products}
         res = requests.get(f"{BASE_URL}/products", headers=valid_headers)
         for p in res.json():
             assert p["price"] == admin_price[p["product_id"]], (
                 f"Price mismatch for product {p['product_id']}: "
-                f"got {p['price']}, expected {admin_price[p['product_id']]}"
+                f"got {p['price']}, expected {admin_price[p['product_id']]} (Bug #4)"
             )
 
     # ── filter by category ────────────────────────────────────────
@@ -128,7 +145,6 @@ class TestGetProducts:
     # ── search by name ────────────────────────────────────────────
 
     def test_search_by_name_returns_matching_products(self, valid_headers, active_product):
-        # Use first 3 chars of an active product name as search term
         search_term = active_product["name"][:3]
         res = requests.get(f"{BASE_URL}/products",
                            headers=valid_headers,
@@ -147,6 +163,15 @@ class TestGetProducts:
                            params={"search": "ZZZNOMATCHZZZ"})
         assert res.status_code == 200
         assert res.json() == []
+
+    def test_search_is_case_insensitive(self, valid_headers, active_product):
+        """Search must work regardless of case."""
+        search_term = active_product["name"][:3].upper()
+        res = requests.get(f"{BASE_URL}/products",
+                           headers=valid_headers,
+                           params={"search": search_term})
+        assert res.status_code == 200
+        assert len(res.json()) > 0, f"Case-insensitive search for '{search_term}' returned nothing"
 
     # ── sort by price ─────────────────────────────────────────────
 
@@ -171,29 +196,25 @@ class TestGetProducts:
     # ── header checks ─────────────────────────────────────────────
 
     def test_missing_roll_number_returns_401(self):
-        res = requests.get(f"{BASE_URL}/products",
-                           headers={"X-User-ID": USER_ID})
-        assert res.status_code == 401
+        assert_missing_roll_number_returns_401(f"{BASE_URL}/products", USER_ID)
 
     def test_non_integer_roll_number_returns_400(self):
-        res = requests.get(f"{BASE_URL}/products",
-                           headers={"X-Roll-Number": "abc", "X-User-ID": USER_ID})
-        assert res.status_code == 400
+        assert_invalid_roll_number_returns_400(f"{BASE_URL}/products", USER_ID, "abc")
 
     def test_missing_user_id_returns_400(self):
-        res = requests.get(f"{BASE_URL}/products",
-                           headers={"X-Roll-Number": ROLL})
-        assert res.status_code == 400
+        assert_missing_user_id_returns_400(f"{BASE_URL}/products", ROLL)
 
-    def test_invalid_user_id_zero_returns_400(self):
-        res = requests.get(f"{BASE_URL}/products",
-                           headers={"X-Roll-Number": ROLL, "X-User-ID": "0"})
-        assert res.status_code == 400
+    def test_user_id_zero_returns_400(self):
+        assert_zero_user_id_returns_400(f"{BASE_URL}/products", ROLL)
+
+    def test_user_id_negative_returns_400(self):
+        assert_negative_user_id_returns_400(f"{BASE_URL}/products", ROLL)
 
     def test_non_existent_user_id_returns_400(self):
-        res = requests.get(f"{BASE_URL}/products",
-                           headers={"X-Roll-Number": ROLL, "X-User-ID": "99999"})
-        assert res.status_code == 400
+        assert_nonexistent_user_id_returns_400(f"{BASE_URL}/products", ROLL, "99999")
+
+    def test_invalid_user_id_string_returns_400(self):
+        assert_invalid_user_id_returns_400(f"{BASE_URL}/products", ROLL, "abc")
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -214,24 +235,34 @@ class TestGetProductById:
                            headers=valid_headers)
         assert res.json()["product_id"] == active_product["product_id"]
 
+    def test_response_contains_required_fields(self, valid_headers, active_product):
+        res = requests.get(f"{BASE_URL}/products/{active_product['product_id']}",
+                           headers=valid_headers)
+        for field in ("product_id", "name", "price"):
+            assert field in res.json(), f"Field '{field}' missing from product detail"
+
     def test_price_matches_admin_source(self, valid_headers, active_product):
+        """Price on detail endpoint must match admin DB value (Bug #4)."""
         res = requests.get(f"{BASE_URL}/products/{active_product['product_id']}",
                            headers=valid_headers)
         assert res.json()["price"] == active_product["price"], (
             f"Price mismatch: got {res.json()['price']}, "
-            f"expected {active_product['price']}"
+            f"expected {active_product['price']} (Bug #4)"
         )
 
     # ── inactive product ──────────────────────────────────────────
 
     def test_inactive_product_by_id_returns_404(self, valid_headers, inactive_product):
         """
-        The listing hides inactive products; looking one up by ID should
-        also return 404 (adjust expected status if the server behaves differently).
+        Inactive products must not be accessible via their ID (Bug #5).
+        The listing hides them; direct lookup must also return 404.
         """
         res = requests.get(f"{BASE_URL}/products/{inactive_product['product_id']}",
                            headers=valid_headers)
-        assert res.status_code == 404
+        assert res.status_code == 404, (
+            f"Inactive product {inactive_product['product_id']} returned "
+            f"{res.status_code} instead of 404 (Bug #5)"
+        )
 
     # ── not found ─────────────────────────────────────────────────
 
@@ -240,7 +271,7 @@ class TestGetProductById:
                            headers=valid_headers)
         assert res.status_code == 404
 
-    def test_string_product_id_returns_404_or_400(self, valid_headers):
+    def test_string_product_id_returns_400_or_404(self, valid_headers):
         res = requests.get(f"{BASE_URL}/products/abc",
                            headers=valid_headers)
         assert res.status_code in (400, 404)
@@ -248,21 +279,27 @@ class TestGetProductById:
     # ── header checks ─────────────────────────────────────────────
 
     def test_missing_roll_number_returns_401(self, active_product):
-        res = requests.get(f"{BASE_URL}/products/{active_product['product_id']}",
-                           headers={"X-User-ID": USER_ID})
-        assert res.status_code == 401
+        assert_missing_roll_number_returns_401(
+            f"{BASE_URL}/products/{active_product['product_id']}", USER_ID)
 
     def test_non_integer_roll_number_returns_400(self, active_product):
-        res = requests.get(f"{BASE_URL}/products/{active_product['product_id']}",
-                           headers={"X-Roll-Number": "xyz", "X-User-ID": USER_ID})
-        assert res.status_code == 400
+        assert_invalid_roll_number_returns_400(
+            f"{BASE_URL}/products/{active_product['product_id']}", USER_ID, "xyz")
 
     def test_missing_user_id_returns_400(self, active_product):
-        res = requests.get(f"{BASE_URL}/products/{active_product['product_id']}",
-                           headers={"X-Roll-Number": ROLL})
-        assert res.status_code == 400
+        """Missing X-User-ID must return 400, not 404 (Bug #6)."""
+        assert_missing_user_id_returns_400(
+            f"{BASE_URL}/products/{active_product['product_id']}", ROLL)
 
     def test_non_existent_user_id_returns_400(self, active_product):
-        res = requests.get(f"{BASE_URL}/products/{active_product['product_id']}",
-                           headers={"X-Roll-Number": ROLL, "X-User-ID": "99999"})
-        assert res.status_code == 400
+        """Non-existent X-User-ID must return 400, not 404 (Bug #7)."""
+        assert_nonexistent_user_id_returns_400(
+            f"{BASE_URL}/products/{active_product['product_id']}", ROLL, "99999")
+
+    def test_user_id_zero_returns_400(self, active_product):
+        assert_zero_user_id_returns_400(
+            f"{BASE_URL}/products/{active_product['product_id']}", ROLL)
+
+    def test_user_id_negative_returns_400(self, active_product):
+        assert_negative_user_id_returns_400(
+            f"{BASE_URL}/products/{active_product['product_id']}", ROLL)
