@@ -4,7 +4,7 @@ Unit tests for ResultsModule.
 """
 
 import unittest
-from tests.helpers import (
+from helpers import (
     make_modules, register_driver, add_good_car, run_full_race
 )
 from results import DAMAGE_PER_RACE, PRIZE_SPLIT

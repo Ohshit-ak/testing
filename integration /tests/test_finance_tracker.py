@@ -4,7 +4,7 @@ Unit tests for FinanceTrackerModule.
 """
 
 import unittest
-from tests.helpers import make_modules
+from helpers import make_modules
 
 
 class TestFinanceTracker(unittest.TestCase):

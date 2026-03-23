@@ -5,7 +5,7 @@ Each test exercises at least two modules working together.
 """
 
 import unittest
-from tests.helpers import (
+from helpers import (
     make_modules, register_driver, register_mechanic,
     register_medic, register_scout, register_strategist,
     add_good_car, run_full_race

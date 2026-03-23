@@ -4,7 +4,7 @@ Unit tests for InventoryModule.
 """
 
 import unittest
-from tests.helpers import make_modules, add_good_car
+from helpers import make_modules, add_good_car
 
 
 class TestInventory(unittest.TestCase):

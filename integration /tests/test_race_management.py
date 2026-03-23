@@ -4,7 +4,7 @@ Unit tests for RaceManagementModule.
 """
 
 import unittest
-from tests.helpers import (
+from helpers import (
     make_modules, register_driver, register_mechanic, add_good_car
 )
 

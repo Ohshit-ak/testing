@@ -4,7 +4,7 @@ Unit tests for MissionPlanningModule.
 """
 
 import unittest
-from tests.helpers import (
+from helpers import (
     make_modules, register_driver, register_mechanic,
     register_medic, register_scout, register_strategist
 )

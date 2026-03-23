@@ -7,8 +7,8 @@ fixture objects.  Every TestCase imports from here — no duplicated setup code.
 import sys
 import os
 
-# Allow imports from the project root regardless of where pytest/unittest runs
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+# Allow imports from the code/ directory regardless of where pytest runs.
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "code"))
 
 from registration import RegistrationModule
 from crew_management import CrewManagementModule

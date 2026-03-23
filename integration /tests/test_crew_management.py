@@ -5,7 +5,7 @@ Unit tests for CrewManagementModule.
 
 import unittest
 import uuid
-from tests.helpers import make_modules, register_driver, register_mechanic
+from helpers import make_modules, register_driver, register_mechanic
 
 
 class TestCrewManagement(unittest.TestCase):
