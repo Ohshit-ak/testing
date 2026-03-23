@@ -4,7 +4,7 @@ This workspace contains three testing-focused areas:
 
 - blackbox: Black-box API tests and bug report for QuickCart
 - integration : StreetRace Manager integration code and tests
-- moneypoly: Moneypoly game implementation and tests
+- whitebox: Moneypoly game implementation and tests
 
 ## Prerequisites
 
@@ -16,8 +16,7 @@ This workspace contains three testing-focused areas:
 From the workspace root:
 
 ```bash
-cd /home/akshith-kandagtla/Desktop/testing
-source .venv/bin/activate
+cd 
 ```
 
 ## Run Code
@@ -25,62 +24,64 @@ source .venv/bin/activate
 ### Integration system (StreetRace Manager)
 
 ```bash
-cd '/home/akshith-kandagtla/Desktop/testing/integration /code'
+cd integration /code
 python main.py
 ```
 
 ### Moneypoly game
 
 ```bash
-cd /home/akshith-kandagtla/Desktop/testing/moneypoly/moneypoly
+cd whitebox/moneypoly
 python main.py
 ```
 
 ### Blackbox area
 
-The blackbox folder contains tests/reporting assets and no local application entrypoint script in this workspace.
+```bash
+cd blackbox
+docker load -i quickcart_image.tar
+docker run -p 8080:8080 quickcart
+```
 
 ## Run Tests
 
 Run from workspace root:
 
-```bash
-cd /home/akshith-kandagtla/Desktop/testing
-source .venv/bin/activate
-```
+
 
 ### Integration tests
 
 ```bash
-python -m pytest 'integration /tests' -v
+cd integration
+cd tests
+pytest -v 
 ```
 
 ### Blackbox tests
 
 ```bash
-python -m pytest blackbox/tests -v
+cd blackbox
+cd tests
+pytest -v
+or 
+pytest {file_name} -v ("for better results")
 ```
 
 ### Moneypoly tests
 
 ```bash
-python -m pytest moneypoly/moneypoly/test -v
-```
-
-### Run all tests in one command
-
-```bash
-python -m pytest 'integration /tests' blackbox/tests moneypoly/moneypoly/test -v
+cd whitebox
+cd tests
+pytest -v
 ```
 
 ## Reports
 
-- blackbox report: blackbox/report.md
-- integration report: integration /report.md
-- moneypoly report: moneypoly/report.md
+- blackbox report: blackbox/report.pdf
+- integration report: integration /report.pdf
+- moneypoly report: moneypoly/report.pdf
 
 ## Placeholder Links
 
-- Project documentation link: [ADD_LINK_HERE]
-- Demo/video link: [ADD_LINK_HERE]
-- API/base URL link: [ADD_LINK_HERE]
+- GitHub: [https://github.com/Ohshit-ak/testing]
+
